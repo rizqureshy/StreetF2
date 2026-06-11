@@ -43,13 +43,17 @@ Menus: **Enter** to confirm, **Esc** to go back.
 
 ## Fighters
 
-Original characters inspired by classic world-warrior archetypes:
+Original characters inspired by classic world-warrior and comic-hero archetypes:
 
 - **AKIRA** — stoic karateka in a white gi, blue fireball
 - **BLAZE** — hot-headed brawler in a red gi, orange fireball
+- **APEX** — caped hero in a blue muscle suit with a chest emblem,
+  spiky blond hair, and a flowing red cape; yellow energy blast
 
-Both are drawn with open-chest gis, defined pecs/abs, and bulging biceps —
-procedurally rendered with canvas primitives (no sprite assets).
+All are drawn with defined pecs/abs and bulging biceps — procedurally
+rendered with canvas primitives (no sprite assets). Fighters render at
+1.6x scale for big, readable silhouettes, with hit-freeze and screen
+shake on heavy impacts.
 
 ## Tech notes
 
