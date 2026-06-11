@@ -7,10 +7,11 @@
 // ---------------- Constants ----------------
 const W = 960, H = 540;
 const GROUND = 470;
-const GRAVITY = 0.7;
-const JUMP_VY = -14.5;
-const WALK_SPEED = 3.2;
-const STAGE_MARGIN = 40;
+const GRAVITY = 0.78;
+const JUMP_VY = -16;
+const WALK_SPEED = 3.9;
+const STAGE_MARGIN = 56;
+const FSCALE = 1.6;   // fighter size multiplier (visuals + hitboxes)
 const MAX_HP = 100;
 const ROUND_TIME = 99;
 const ROUNDS_TO_WIN = 2;
@@ -92,6 +93,16 @@ const CHARACTERS = [
     hair: '#f0cf52', band: '#6e1010', belt: '#3a2008', glove: '#7a3b10', fireball: '#ffac28',
     taunt: 'NOBODY OUTBURNS BLAZE!',
   },
+  {
+    id: 'apex', name: 'APEX', style: 'hero',
+    gi: '#2858c8', giDark: '#1a3a8a',          // suit (legs/lying reuse gi fields)
+    suit: '#2858c8', suitDark: '#1a3a8a',
+    cape: '#c01818', capeDark: '#7e0e0e',
+    skin: '#e9bd92', skinDark: '#bb8a55',
+    hair: '#f5d440', band: '#1a3a8a', belt: '#e8c020', glove: '#e9bd92',
+    emblem: '#e8c020', fireball: '#ffe040',
+    taunt: 'JUSTICE NEVER LOSES!',
+  },
 ];
 
 // ---------------- Attack definitions ----------------
@@ -144,17 +155,35 @@ function jointPoint(x1, y1, x2, y2, bend) {
 }
 
 // Muscular arm: deltoid, bulging bicep, tapered forearm, fist.
+// Heroes get suit-colored arms; gi fighters get bare skin.
 function drawMuscleArm(c, sx, sy, hx, hy, bend, ch) {
+  const col = ch.style === 'hero' ? ch.suit : ch.skin;
+  const shade = ch.style === 'hero' ? ch.suitDark : ch.skinDark;
   const [ex, ey] = jointPoint(sx, sy, hx, hy, bend);
-  seg(c, sx, sy, ex, ey, 14, ch.skin);          // upper arm
-  seg(c, ex, ey, hx, hy, 9.5, ch.skin);         // forearm
-  dot(c, sx, sy, 8.5, ch.skin);                 // deltoid
+  seg(c, sx, sy, ex, ey, 14, col);              // upper arm
+  seg(c, ex, ey, hx, hy, 9.5, col);             // forearm
+  dot(c, sx, sy, 8.5, col);                     // deltoid
   const bx = (sx + ex) / 2, by = (sy + ey) / 2;
-  dot(c, bx, by - 1.5, 8, ch.skin);             // bicep bulge
-  c.strokeStyle = ch.skinDark;
+  dot(c, bx, by - 1.5, 8, col);                 // bicep bulge
+  c.strokeStyle = shade;
   c.lineWidth = 1.6;
   c.beginPath(); c.arc(bx, by - 2, 6, Math.PI * 1.05, Math.PI * 1.85); c.stroke();
   dot(c, hx, hy, 6.5, ch.glove);                // fist
+}
+
+// Flowing cape, drawn behind the body. Sways with time, trails on movement.
+function drawCape(c, nx, ny, ch, t, vx) {
+  const len = Math.max(30, -ny - 8);
+  const sway = Math.sin(t * 0.09) * 7 + vx * 2.5;
+  c.fillStyle = ch.cape;
+  c.beginPath();
+  c.moveTo(nx - 13, ny + 2);
+  c.quadraticCurveTo(nx - 36, ny + len * 0.5, nx - 28 - sway, ny + len);
+  c.lineTo(nx - 4 - sway * 0.6, ny + len - 4);
+  c.quadraticCurveTo(nx - 8, ny + len * 0.5, nx + 9, ny + 4);
+  c.closePath();
+  c.fill();
+  seg(c, nx - 9, ny + 12, nx - 17 - sway * 0.7, ny + len - 8, 3, ch.capeDark);
 }
 
 // Leg with baggy gi pants, calf line, bare foot.
@@ -174,8 +203,45 @@ function drawGiLeg(c, hx, hy, fx, fy, bend, ch) {
 }
 
 // V-cut torso with open gi: bare chest, pecs, abs, lapels, belt with knot.
+// Heroes get a full muscle suit with a chest emblem instead.
 function drawTorso(c, hx, hy, nx, ny, ch) {
   const shY = ny + 4;
+  if (ch.style === 'hero') {
+    c.fillStyle = ch.suit;
+    c.beginPath();
+    c.moveTo(hx - 12, hy + 3);
+    c.lineTo(nx - 18, shY + 4);
+    c.lineTo(nx - 15, ny - 1);
+    c.lineTo(nx + 15, ny - 1);
+    c.lineTo(nx + 18, shY + 4);
+    c.lineTo(hx + 12, hy + 3);
+    c.closePath();
+    c.fill();
+    // muscle definition through the suit
+    c.strokeStyle = ch.suitDark;
+    c.lineWidth = 1.8;
+    c.beginPath(); c.arc(nx - 5, ny + 9, 6, Math.PI * 0.15, Math.PI * 0.95); c.stroke();
+    c.beginPath(); c.arc(nx + 5, ny + 9, 6, Math.PI * 0.05, Math.PI * 0.85); c.stroke();
+    for (let i = 1; i <= 3; i++) {
+      const t = i / 4;
+      const ax = lerp(nx, hx + 2, 0.45 + t * 0.5);
+      const ay = lerp(ny + 18, hy - 5, t);
+      c.beginPath(); c.moveTo(ax - 4, ay); c.lineTo(ax + 4, ay); c.stroke();
+    }
+    // chest emblem
+    const ex = lerp(nx, hx, 0.2) + 1, ey = lerp(ny, hy, 0.28) + 4;
+    c.fillStyle = ch.emblem;
+    c.beginPath();
+    c.moveTo(ex - 7, ey - 5); c.lineTo(ex + 7, ey - 5); c.lineTo(ex, ey + 7);
+    c.closePath(); c.fill();
+    c.strokeStyle = ch.cape;
+    c.lineWidth = 1.5;
+    c.stroke();
+    // belt
+    c.fillStyle = ch.belt;
+    c.fillRect(hx - 13, hy - 4, 26, 7);
+    return;
+  }
   c.fillStyle = ch.gi;
   c.beginPath();
   c.moveTo(hx - 12, hy + 3);
@@ -224,6 +290,24 @@ function drawHead(c, x, y, ch, t) {
   c.strokeStyle = ch.skinDark;
   c.lineWidth = 1.5;
   c.beginPath(); c.arc(x + 2, y + 4, 7, Math.PI * 0.2, Math.PI * 0.7); c.stroke(); // jaw
+  if (ch.style === 'hero') {
+    // spiky hair, no headband
+    c.fillStyle = ch.hair;
+    c.beginPath();
+    c.moveTo(x - 12, y - 1);
+    c.lineTo(x - 11, y - 16);
+    c.lineTo(x - 5, y - 8);
+    c.lineTo(x - 1, y - 22);
+    c.lineTo(x + 4, y - 9);
+    c.lineTo(x + 9, y - 17);
+    c.lineTo(x + 12, y - 3);
+    c.closePath();
+    c.fill();
+    c.fillStyle = '#1a1a1a';
+    c.fillRect(x + 4, y - 1, 4, 3);
+    c.fillRect(x + 2, y - 4, 8, 2);
+    return;
+  }
   c.fillStyle = ch.hair;
   c.beginPath(); c.arc(x - 1, y - 3, 12, Math.PI * 0.85, Math.PI * 2.08); c.fill();
   c.fillStyle = ch.band;
@@ -247,18 +331,18 @@ class Projectile {
   constructor(owner) {
     this.owner = owner;
     this.facing = owner.facing;
-    this.x = owner.x + this.facing * 50;
-    this.y = owner.y - 70;
-    this.vx = this.facing * 7.5;
+    this.x = owner.x + this.facing * 50 * FSCALE;
+    this.y = owner.y - 70 * FSCALE;
+    this.vx = this.facing * 8.5;
     this.alive = true;
     this.t = 0;
   }
   update() {
     this.x += this.vx;
     this.t++;
-    if (this.x < -40 || this.x > W + 40) this.alive = false;
+    if (this.x < -60 || this.x > W + 60) this.alive = false;
   }
-  get box() { return { x: this.x - 16, y: this.y - 14, w: 32, h: 28 }; }
+  get box() { return { x: this.x - 22, y: this.y - 18, w: 44, h: 36 }; }
   draw(c) {
     const col = this.owner.char.fireball;
     c.save();
@@ -267,18 +351,18 @@ class Projectile {
       c.globalAlpha = 0.18 / i + 0.05;
       c.fillStyle = col;
       c.beginPath();
-      c.arc(this.x - this.vx * i * 1.6, this.y, 14 - i * 2, 0, Math.PI * 2);
+      c.arc(this.x - this.vx * i * 1.6, this.y, 20 - i * 3, 0, Math.PI * 2);
       c.fill();
     }
     c.globalAlpha = 1;
-    const pulse = 2 * Math.sin(this.t * 0.5);
+    const pulse = 3 * Math.sin(this.t * 0.5);
     c.fillStyle = col;
     c.beginPath();
-    c.arc(this.x, this.y, 14 + pulse, 0, Math.PI * 2);
+    c.arc(this.x, this.y, 20 + pulse, 0, Math.PI * 2);
     c.fill();
     c.fillStyle = '#ffffff';
     c.beginPath();
-    c.arc(this.x, this.y, 7 + pulse * 0.5, 0, Math.PI * 2);
+    c.arc(this.x, this.y, 10 + pulse * 0.5, 0, Math.PI * 2);
     c.fill();
     c.restore();
   }
@@ -317,11 +401,11 @@ class Fighter {
   get crouching() { return this.state === 'crouch' || (this.attack && this.attack.def.crouch); }
 
   get body() {
-    const h = this.grounded ? (this.crouching ? 72 : 110) : 96;
+    const h = (this.grounded ? (this.crouching ? 72 : 110) : 96) * FSCALE;
     if (this.state === 'down' || this.state === 'ko') {
-      return { x: this.x - 40, y: this.y - 26, w: 80, h: 26 };
+      return { x: this.x - 40 * FSCALE, y: this.y - 26 * FSCALE, w: 80 * FSCALE, h: 26 * FSCALE };
     }
-    return { x: this.x - 19, y: this.y - h, w: 38, h: h };
+    return { x: this.x - 19 * FSCALE, y: this.y - h, w: 38 * FSCALE, h: h };
   }
 
   attackBox() {
@@ -329,8 +413,8 @@ class Fighter {
     const a = this.attack;
     if (a.t < a.def.startup || a.t >= a.def.startup + a.def.active) return null;
     const b = a.def.box;
-    const bx = this.facing === 1 ? this.x + b.x : this.x - b.x - b.w;
-    return { x: bx, y: this.y + b.y, w: b.w, h: b.h };
+    const bx = this.facing === 1 ? this.x + b.x * FSCALE : this.x - (b.x + b.w) * FSCALE;
+    return { x: bx, y: this.y + b.y * FSCALE, w: b.w * FSCALE, h: b.h * FSCALE };
   }
 
   startAttack(name) {
@@ -483,7 +567,7 @@ class Fighter {
     if (blocked) {
       this.state = 'block';
       this.stateT = 0;
-      this.vx = dir * kb * 0.7;
+      this.vx = dir * kb;
       SFX.block();
       return;
     }
@@ -492,8 +576,8 @@ class Fighter {
     if (this.hp <= 0) {
       this.state = 'ko';
       this.stateT = 0;
-      this.vy = -7;
-      this.vx = dir * 3.5;
+      this.vy = -8;
+      this.vx = dir * 5;
       this.y -= 1;
       SFX.ko();
       return;
@@ -501,14 +585,14 @@ class Fighter {
     if (knockdown || !this.grounded) {
       this.state = 'hit';
       this.stateT = 0;
-      this.vy = -6.5;
-      this.vx = dir * 3;
+      this.vy = -7;
+      this.vx = dir * 4.5;
       this.y -= 1;
       SFX.sweep();
     } else {
       this.state = 'hit';
       this.stateT = 0;
-      this.vx = dir * kb;
+      this.vx = dir * kb * 1.4;
       SFX.hit();
     }
   }
@@ -537,6 +621,8 @@ class Fighter {
         p.frontFoot = [14 + s * 13, -Math.max(0, s) * 5];
         p.backFoot = [-16 - s * 13, -Math.max(0, -s) * 5];
         p.hip[1] += Math.abs(s);
+        p.frontHand = [27 + s * 5, -70 - s * 4];   // arms swing with stride
+        p.backHand = [14 - s * 5, -60 + s * 4];
         break;
       }
       case 'crouch':
@@ -634,12 +720,12 @@ class Fighter {
     c.globalAlpha = 0.3;
     c.fillStyle = '#000';
     c.beginPath();
-    c.ellipse(this.x, GROUND + 6, 34, 7, 0, 0, Math.PI * 2);
+    c.ellipse(this.x, GROUND + 8, 34 * FSCALE, 9, 0, 0, Math.PI * 2);
     c.fill();
     c.globalAlpha = 1;
 
     c.translate(this.x, this.y);
-    c.scale(this.facing, 1);
+    c.scale(this.facing * FSCALE, FSCALE);
 
     const p = this.pose();
 
@@ -667,6 +753,7 @@ class Fighter {
     const shoulderB = [nx - 9, ny + 8];
     const shoulderF = [nx + 9, ny + 6];
 
+    if (ch.style === 'hero') drawCape(c, nx, ny, ch, this.stateT, this.vx * this.facing);
     drawMuscleArm(c, shoulderB[0], shoulderB[1], p.backHand[0], p.backHand[1], p.armBendB, ch);
     drawGiLeg(c, hx - 5, hy, p.backFoot[0], p.backFoot[1], p.legBendB, ch);
     seg(c, nx, ny + 6, p.head[0], p.head[1] + 6, 9, ch.skin);   // neck
@@ -737,7 +824,7 @@ function cpuThink(f, opp, game) {
     case 'retreat': pad[backKey] = true; break;
     case 'jumpin':
       if (ai.fresh && f.grounded) { pad.up = true; pad[fwdKey] = true; }
-      else if (!f.grounded && dist < 130 && !f.attack) pad.kick = true;
+      else if (!f.grounded && dist < 170 && !f.attack) pad.kick = true;
       else pad[fwdKey] = true;
       break;
     case 'fireball': if (ai.fresh) pad.hadouken = true; break;
@@ -756,11 +843,11 @@ class HitSpark {
   }
   get alive() { return this.t < 12; }
   draw(c) {
-    const r = 6 + this.t * 2.2;
+    const r = (6 + this.t * 2.2) * 1.5;
     c.save();
     c.translate(this.x, this.y);
     c.strokeStyle = this.blocked ? '#88bbff' : (this.t % 2 ? '#ffdd33' : '#ffffff');
-    c.lineWidth = 3;
+    c.lineWidth = 4;
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2 + this.t * 0.3;
       c.beginPath();
@@ -786,8 +873,8 @@ class Game {
   }
 
   startMatch() {
-    this.p1 = new Fighter(CHARACTERS[this.sel1], 280, 1, true);
-    this.p2 = new Fighter(CHARACTERS[this.sel2], 680, -1, false);
+    this.p1 = new Fighter(CHARACTERS[this.sel1], 250, 1, true);
+    this.p2 = new Fighter(CHARACTERS[this.sel2], 710, -1, false);
     this.wins1 = 0; this.wins2 = 0;
     this.round = 1;
     this.startRound();
@@ -798,6 +885,8 @@ class Game {
     this.p2.resetRound();
     this.projectiles = [];
     this.sparks = [];
+    this.hitstop = 0;
+    this.shake = 0;
     this.timeLeft = ROUND_TIME;
     this.timerAcc = 0;
     this.screen = 'intro';
@@ -834,17 +923,20 @@ class Game {
         break;
 
       case 'select': {
+        const n = CHARACTERS.length;
         if (!this.done1) {
-          if (keysPressed.has('KeyA') || keysPressed.has('KeyD')) { this.sel1 = 1 - this.sel1; SFX.select(); }
+          if (keysPressed.has('KeyA')) { this.sel1 = (this.sel1 + n - 1) % n; SFX.select(); }
+          if (keysPressed.has('KeyD')) { this.sel1 = (this.sel1 + 1) % n; SFX.select(); }
           if (keysPressed.has('KeyF') || keysPressed.has('Enter')) { this.done1 = true; SFX.confirm(); }
         }
         if (this.vsCpu) {
           if (this.done1 && !this.done2) {
-            this.sel2 = 1 - this.sel1;
+            do { this.sel2 = Math.floor(Math.random() * n); } while (this.sel2 === this.sel1);
             this.done2 = true;
           }
         } else if (!this.done2) {
-          if (keysPressed.has('ArrowLeft') || keysPressed.has('ArrowRight')) { this.sel2 = 1 - this.sel2; SFX.select(); }
+          if (keysPressed.has('ArrowLeft')) { this.sel2 = (this.sel2 + n - 1) % n; SFX.select(); }
+          if (keysPressed.has('ArrowRight')) { this.sel2 = (this.sel2 + 1) % n; SFX.select(); }
           if (keysPressed.has('KeyK')) { this.done2 = true; SFX.confirm(); }
         }
         if (this.done1 && this.done2 && this.screenT > 30) this.startMatch();
@@ -904,6 +996,7 @@ class Game {
 
   updateFight(frozen) {
     if (!this.p1) return;
+    if (this.hitstop > 0) { this.hitstop--; return; }   // impact freeze
     const pad1 = frozen ? { ...EMPTY_PAD } : readPad(P1_KEYS);
     const pad2 = frozen ? { ...EMPTY_PAD }
       : this.vsCpu ? cpuThink(this.p2, this.p1, this) : readPad(P2_KEYS);
@@ -915,7 +1008,7 @@ class Game {
     if (this.p1.grounded && this.p2.grounded &&
         this.p1.state !== 'down' && this.p2.state !== 'down' &&
         this.p1.state !== 'ko' && this.p2.state !== 'ko') {
-      const overlap = 38 - Math.abs(this.p1.x - this.p2.x);
+      const overlap = 38 * FSCALE - Math.abs(this.p1.x - this.p2.x);
       if (overlap > 0) {
         const dir = this.p1.x <= this.p2.x ? 1 : -1;
         this.p1.x -= dir * overlap / 2;
@@ -945,6 +1038,7 @@ class Game {
         this.sparks.push(new HitSpark(pr.x, pr.y, blocked));
         target.receiveHit(10, 7, false, pr.owner.x, blocked);
         if (blocked) target.hp = Math.max(1, target.hp - 2); // chip damage
+        else { this.hitstop = 4; this.shake = target.hp <= 0 ? 14 : 7; }
         this.checkKO();
       }
       // projectiles cancel each other
@@ -973,9 +1067,13 @@ class Game {
     const sparkY = hb.y + hb.h / 2;
     this.sparks.push(new HitSpark(sparkX, sparkY, blocked));
     defender.receiveHit(def.damage, def.kb, !!def.knockdown, attacker.x, blocked);
+    if (!blocked) {
+      this.hitstop = 6;
+      this.shake = defender.hp <= 0 ? 14 : 8;
+    }
     // attacker pushback on connect
     attacker.vx = 0;
-    attacker.x -= attacker.facing * 3;
+    attacker.x -= attacker.facing * 5;
     attacker.clampX();
     this.checkKO();
   }
@@ -1200,7 +1298,7 @@ class Game {
     this.drawStage(c);
     // demo fighters
     if (!this.demoF) {
-      this.demoF = [new Fighter(CHARACTERS[0], 300, 1, true), new Fighter(CHARACTERS[1], 660, -1, false)];
+      this.demoF = [new Fighter(CHARACTERS[0], 260, 1, true), new Fighter(CHARACTERS[2], 700, -1, false)];
     }
     for (const f of this.demoF) { f.stateT++; f.draw(c); }
 
@@ -1270,44 +1368,84 @@ class Game {
     c.fillText('CHOOSE YOUR FIGHTER', W / 2, 110);
 
     CHARACTERS.forEach((ch, i) => {
-      const cx = W / 2 + (i === 0 ? -160 : 160);
+      const cx = W / 2 + (i - (CHARACTERS.length - 1) / 2) * 230;
       const cy = 270;
       // card
       c.fillStyle = '#16213a';
       c.fillRect(cx - 90, cy - 110, 180, 230);
-      // shoulders & open-chest gi
-      c.fillStyle = ch.gi;
-      c.beginPath();
-      c.moveTo(cx - 80, cy + 120);
-      c.quadraticCurveTo(cx - 82, cy + 32, cx - 38, cy + 28);
-      c.lineTo(cx + 38, cy + 28);
-      c.quadraticCurveTo(cx + 82, cy + 32, cx + 80, cy + 120);
-      c.closePath(); c.fill();
-      // bare chest
-      c.fillStyle = ch.skin;
-      c.beginPath();
-      c.moveTo(cx - 26, cy + 30);
-      c.lineTo(cx + 26, cy + 30);
-      c.lineTo(cx, cy + 100);
-      c.closePath(); c.fill();
-      // pecs
-      c.strokeStyle = ch.skinDark;
-      c.lineWidth = 3;
-      c.beginPath(); c.arc(cx - 11, cy + 52, 13, Math.PI * 0.1, Math.PI * 0.9); c.stroke();
-      c.beginPath(); c.arc(cx + 11, cy + 52, 13, Math.PI * 0.1, Math.PI * 0.9); c.stroke();
-      // lapels
-      c.strokeStyle = ch.giDark;
-      c.lineWidth = 7;
-      c.beginPath(); c.moveTo(cx - 27, cy + 28); c.lineTo(cx, cy + 100); c.stroke();
-      c.beginPath(); c.moveTo(cx + 27, cy + 28); c.lineTo(cx + 1, cy + 100); c.stroke();
-      // neck + head
-      c.fillStyle = ch.skin;
-      c.fillRect(cx - 12, cy + 12, 24, 20);
-      c.beginPath(); c.arc(cx, cy - 10, 42, 0, Math.PI * 2); c.fill();
-      c.fillStyle = ch.hair;
-      c.beginPath(); c.arc(cx - 3, cy - 22, 42, Math.PI * 0.85, Math.PI * 2.1); c.fill();
-      c.fillStyle = ch.band;
-      c.fillRect(cx - 42, cy - 32, 84, 13);
+      if (ch.style === 'hero') {
+        // suit chest with emblem
+        c.fillStyle = ch.suit;
+        c.beginPath();
+        c.moveTo(cx - 80, cy + 120);
+        c.quadraticCurveTo(cx - 82, cy + 32, cx - 38, cy + 28);
+        c.lineTo(cx + 38, cy + 28);
+        c.quadraticCurveTo(cx + 82, cy + 32, cx + 80, cy + 120);
+        c.closePath(); c.fill();
+        c.strokeStyle = ch.suitDark;
+        c.lineWidth = 3;
+        c.beginPath(); c.arc(cx - 14, cy + 52, 14, Math.PI * 0.1, Math.PI * 0.9); c.stroke();
+        c.beginPath(); c.arc(cx + 14, cy + 52, 14, Math.PI * 0.1, Math.PI * 0.9); c.stroke();
+        c.fillStyle = ch.emblem;
+        c.beginPath();
+        c.moveTo(cx - 18, cy + 48); c.lineTo(cx + 18, cy + 48); c.lineTo(cx, cy + 80);
+        c.closePath(); c.fill();
+        c.strokeStyle = ch.cape; c.lineWidth = 3; c.stroke();
+        c.fillStyle = ch.cape;
+        c.font = 'bold 22px Impact, "Arial Black", sans-serif';
+        c.fillText('A', cx, cy + 68);
+        // neck + head
+        c.fillStyle = ch.skin;
+        c.fillRect(cx - 12, cy + 12, 24, 20);
+        c.beginPath(); c.arc(cx, cy - 10, 42, 0, Math.PI * 2); c.fill();
+        // spiky hair
+        c.fillStyle = ch.hair;
+        c.beginPath();
+        c.moveTo(cx - 42, cy - 14);
+        c.lineTo(cx - 36, cy - 54);
+        c.lineTo(cx - 21, cy - 32);
+        c.lineTo(cx - 7, cy - 66);
+        c.lineTo(cx + 7, cy - 34);
+        c.lineTo(cx + 23, cy - 58);
+        c.lineTo(cx + 35, cy - 28);
+        c.lineTo(cx + 42, cy - 12);
+        c.closePath(); c.fill();
+      } else {
+        // shoulders & open-chest gi
+        c.fillStyle = ch.gi;
+        c.beginPath();
+        c.moveTo(cx - 80, cy + 120);
+        c.quadraticCurveTo(cx - 82, cy + 32, cx - 38, cy + 28);
+        c.lineTo(cx + 38, cy + 28);
+        c.quadraticCurveTo(cx + 82, cy + 32, cx + 80, cy + 120);
+        c.closePath(); c.fill();
+        // bare chest
+        c.fillStyle = ch.skin;
+        c.beginPath();
+        c.moveTo(cx - 26, cy + 30);
+        c.lineTo(cx + 26, cy + 30);
+        c.lineTo(cx, cy + 100);
+        c.closePath(); c.fill();
+        // pecs
+        c.strokeStyle = ch.skinDark;
+        c.lineWidth = 3;
+        c.beginPath(); c.arc(cx - 11, cy + 52, 13, Math.PI * 0.1, Math.PI * 0.9); c.stroke();
+        c.beginPath(); c.arc(cx + 11, cy + 52, 13, Math.PI * 0.1, Math.PI * 0.9); c.stroke();
+        // lapels
+        c.strokeStyle = ch.giDark;
+        c.lineWidth = 7;
+        c.beginPath(); c.moveTo(cx - 27, cy + 28); c.lineTo(cx, cy + 100); c.stroke();
+        c.beginPath(); c.moveTo(cx + 27, cy + 28); c.lineTo(cx + 1, cy + 100); c.stroke();
+        // neck + head
+        c.fillStyle = ch.skin;
+        c.fillRect(cx - 12, cy + 12, 24, 20);
+        c.beginPath(); c.arc(cx, cy - 10, 42, 0, Math.PI * 2); c.fill();
+        c.fillStyle = ch.hair;
+        c.beginPath(); c.arc(cx - 3, cy - 22, 42, Math.PI * 0.85, Math.PI * 2.1); c.fill();
+        c.fillStyle = ch.band;
+        c.fillRect(cx - 42, cy - 32, 84, 13);
+      }
+      // eyes + brows
       c.fillStyle = '#1a1a1a';
       c.fillRect(cx - 18, cy - 4, 10, 7);
       c.fillRect(cx + 8, cy - 4, 10, 7);
@@ -1340,6 +1478,12 @@ class Game {
   }
 
   drawFightScreen(c) {
+    c.save();
+    if (this.shake > 0) {   // screen shake on heavy hits
+      c.translate((Math.random() - 0.5) * this.shake, (Math.random() - 0.5) * this.shake * 0.6);
+      this.shake *= 0.85;
+      if (this.shake < 0.5) this.shake = 0;
+    }
     this.drawStage(c);
     // draw the fighter farther from camera first (the one who is knocked down draws under)
     const order = [this.p1, this.p2];
@@ -1349,6 +1493,7 @@ class Game {
     order[1].draw(c);
     for (const pr of this.projectiles) pr.draw(c);
     for (const s of this.sparks) s.draw(c);
+    c.restore();
     this.drawHud(c);
     this.drawAnnounce(c);
 
