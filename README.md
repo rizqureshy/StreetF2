@@ -43,15 +43,23 @@ Menus: **Enter** to confirm, **Esc** to go back.
 
 ## Fighters
 
-- **RYU** — the wandering warrior
-- **KEN** — the flashy American champion
+Original characters inspired by classic world-warrior archetypes:
+
+- **AKIRA** — stoic karateka in a white gi, blue fireball
+- **BLAZE** — hot-headed brawler in a red gi, orange fireball
+
+Both are drawn with open-chest gis, defined pecs/abs, and bulging biceps —
+procedurally rendered with canvas primitives (no sprite assets).
 
 ## Tech notes
 
 - Single-file engine (`game.js`): fixed 60fps timestep, frame-data based attacks
   (startup / active / recovery), hitbox vs hurtbox collision, hit/block stun,
   knockdowns, and a quarter-circle-forward input detector for specials.
-- Fighters are drawn procedurally with canvas primitives (no sprite assets).
+- Retro look: the scene renders at half resolution and is upscaled with
+  nearest-neighbor for a chunky pixel feel.
+- Stage inspired by classic castle-rooftop arenas: sunset sky, pagoda
+  silhouette, wooden plank floor, foreground roof-tile parapet.
 - Sound effects synthesized at runtime with WebAudio.
 
 *A fan-made homage for educational purposes. Not affiliated with or endorsed by Capcom.*

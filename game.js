@@ -81,16 +81,16 @@ const EMPTY_PAD = { left: false, right: false, up: false, down: false, punch: fa
 // ---------------- Characters ----------------
 const CHARACTERS = [
   {
-    id: 'ryu', name: 'RYU',
-    gi: '#e8e6e0', giDark: '#c9c6bd', skin: '#e0b08a', hair: '#2e2118',
-    band: '#cc2222', belt: '#1a1a1a', glove: '#aa2222', fireball: '#5fb0ff',
-    taunt: 'YOU MUST DEFEAT MY HADOUKEN!',
+    id: 'akira', name: 'AKIRA',
+    gi: '#ece9e2', giDark: '#b9b5a8', skin: '#dfa877', skinDark: '#b07a48',
+    hair: '#26190f', band: '#d42424', belt: '#1a1a1a', glove: '#b32020', fireball: '#58b4ff',
+    taunt: 'THE STORM ANSWERS TO ME!',
   },
   {
-    id: 'ken', name: 'KEN',
-    gi: '#d62828', giDark: '#a81f1f', skin: '#e8bb90', hair: '#e8c84a',
-    band: '#7a1212', belt: '#5a3210', glove: '#7a3b10', fireball: '#ffb030',
-    taunt: 'ATTACK ME IF YOU DARE!',
+    id: 'blaze', name: 'BLAZE',
+    gi: '#d62828', giDark: '#931717', skin: '#e9bd92', skinDark: '#bb8a55',
+    hair: '#f0cf52', band: '#6e1010', belt: '#3a2008', glove: '#7a3b10', fireball: '#ffac28',
+    taunt: 'NOBODY OUTBURNS BLAZE!',
   },
 ];
 
@@ -127,6 +127,119 @@ function bentLimb(c, x1, y1, x2, y2, bend, w, color) {
   c.lineTo(mx, my);
   c.lineTo(x2, y2);
   c.stroke();
+}
+
+function seg(c, x1, y1, x2, y2, w, color) {
+  c.strokeStyle = color;
+  c.lineWidth = w;
+  c.lineCap = 'round';
+  c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+}
+function dot(c, x, y, r, color) {
+  c.fillStyle = color;
+  c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+}
+function jointPoint(x1, y1, x2, y2, bend) {
+  return [(x1 + x2) / 2 + (y2 - y1) * bend, (y1 + y2) / 2 - (x2 - x1) * bend];
+}
+
+// Muscular arm: deltoid, bulging bicep, tapered forearm, fist.
+function drawMuscleArm(c, sx, sy, hx, hy, bend, ch) {
+  const [ex, ey] = jointPoint(sx, sy, hx, hy, bend);
+  seg(c, sx, sy, ex, ey, 14, ch.skin);          // upper arm
+  seg(c, ex, ey, hx, hy, 9.5, ch.skin);         // forearm
+  dot(c, sx, sy, 8.5, ch.skin);                 // deltoid
+  const bx = (sx + ex) / 2, by = (sy + ey) / 2;
+  dot(c, bx, by - 1.5, 8, ch.skin);             // bicep bulge
+  c.strokeStyle = ch.skinDark;
+  c.lineWidth = 1.6;
+  c.beginPath(); c.arc(bx, by - 2, 6, Math.PI * 1.05, Math.PI * 1.85); c.stroke();
+  dot(c, hx, hy, 6.5, ch.glove);                // fist
+}
+
+// Leg with baggy gi pants, calf line, bare foot.
+function drawGiLeg(c, hx, hy, fx, fy, bend, ch) {
+  const ay = fy - 5;
+  const [kx, ky] = jointPoint(hx, hy, fx, ay, bend);
+  seg(c, hx, hy, kx, ky, 19, ch.gi);            // thigh
+  seg(c, kx, ky, fx, ay, 14, ch.gi);            // shin
+  c.strokeStyle = ch.giDark;
+  c.lineWidth = 2;
+  c.beginPath(); c.moveTo(kx, ky + 2); c.lineTo((kx + fx) / 2, (ky + ay) / 2 + 2); c.stroke();
+  c.fillStyle = ch.skin;
+  c.beginPath();
+  c.moveTo(fx - 6, fy - 7); c.lineTo(fx + 10, fy - 5);
+  c.lineTo(fx + 9, fy); c.lineTo(fx - 6, fy);
+  c.closePath(); c.fill();
+}
+
+// V-cut torso with open gi: bare chest, pecs, abs, lapels, belt with knot.
+function drawTorso(c, hx, hy, nx, ny, ch) {
+  const shY = ny + 4;
+  c.fillStyle = ch.gi;
+  c.beginPath();
+  c.moveTo(hx - 12, hy + 3);
+  c.lineTo(nx - 18, shY + 4);
+  c.lineTo(nx - 15, ny - 1);
+  c.lineTo(nx + 15, ny - 1);
+  c.lineTo(nx + 18, shY + 4);
+  c.lineTo(hx + 12, hy + 3);
+  c.closePath();
+  c.fill();
+  // open chest
+  c.fillStyle = ch.skin;
+  c.beginPath();
+  c.moveTo(nx - 10, ny + 1);
+  c.lineTo(nx + 10, ny + 1);
+  c.lineTo(hx + 2, hy - 3);
+  c.closePath();
+  c.fill();
+  // pecs
+  c.strokeStyle = ch.skinDark;
+  c.lineWidth = 1.6;
+  c.beginPath(); c.arc(nx - 4, ny + 9, 5.5, Math.PI * 0.15, Math.PI * 0.95); c.stroke();
+  c.beginPath(); c.arc(nx + 4, ny + 9, 5.5, Math.PI * 0.05, Math.PI * 0.85); c.stroke();
+  // abs
+  for (let i = 1; i <= 3; i++) {
+    const t = i / 4;
+    const ax = lerp(nx, hx + 2, 0.45 + t * 0.5);
+    const ay = lerp(ny + 16, hy - 5, t);
+    c.beginPath(); c.moveTo(ax - 3.5, ay); c.lineTo(ax + 3.5, ay); c.stroke();
+  }
+  // lapels
+  c.strokeStyle = ch.giDark;
+  c.lineWidth = 4;
+  c.beginPath(); c.moveTo(nx - 11, ny + 1); c.lineTo(hx + 2, hy - 2); c.stroke();
+  c.beginPath(); c.moveTo(nx + 11, ny + 1); c.lineTo(hx + 3, hy - 2); c.stroke();
+  // belt + knot + tails
+  c.fillStyle = ch.belt;
+  c.fillRect(hx - 13, hy - 4, 26, 8);
+  c.fillRect(hx - 2, hy - 5, 8, 10);
+  seg(c, hx + 1, hy + 4, hx - 3, hy + 15, 4, ch.belt);
+  seg(c, hx + 4, hy + 4, hx + 8, hy + 14, 4, ch.belt);
+}
+
+function drawHead(c, x, y, ch, t) {
+  dot(c, x, y, 12, ch.skin);
+  c.strokeStyle = ch.skinDark;
+  c.lineWidth = 1.5;
+  c.beginPath(); c.arc(x + 2, y + 4, 7, Math.PI * 0.2, Math.PI * 0.7); c.stroke(); // jaw
+  c.fillStyle = ch.hair;
+  c.beginPath(); c.arc(x - 1, y - 3, 12, Math.PI * 0.85, Math.PI * 2.08); c.fill();
+  c.fillStyle = ch.band;
+  c.fillRect(x - 12, y - 7, 24, 6);
+  const wave = Math.sin(t * 0.2) * 3;
+  c.strokeStyle = ch.band;
+  c.lineWidth = 3;
+  c.lineCap = 'round';
+  c.beginPath();
+  c.moveTo(x - 11, y - 5);
+  c.lineTo(x - 24, y - 2 + wave);
+  c.lineTo(x - 31, y + 3 - wave);
+  c.stroke();
+  c.fillStyle = '#1a1a1a';
+  c.fillRect(x + 4, y - 1, 4, 3);   // eye
+  c.fillRect(x + 2, y - 4, 8, 2);   // brow
 }
 
 // ---------------- Projectile (Hadouken) ----------------
@@ -405,9 +518,9 @@ class Fighter {
     const t = this.stateT;
     // defaults: standing guard
     const p = {
-      hip: [0, -50], neck: [1, -86], head: [3, -97],
+      hip: [0, -50], neck: [1, -88], head: [3, -101],
       backFoot: [-16, 0], frontFoot: [14, 0],
-      backHand: [13, -66], frontHand: [22, -76],
+      backHand: [14, -60], frontHand: [27, -70],
       legBendF: 0.12, legBendB: -0.12, armBendF: 0.35, armBendB: 0.4,
       lying: false,
     };
@@ -471,7 +584,7 @@ class Fighter {
         else ext = Math.max(0, 1 - (a.t - startup - active) / recovery);
 
         if (a.name === 'punch') {
-          p.frontHand = [lerp(22, 56, ext), lerp(-76, -82, ext)];
+          p.frontHand = [lerp(27, 58, ext), lerp(-70, -82, ext)];
           p.neck[0] += 5 * ext; p.head[0] += 5 * ext;
           p.armBendF = 0.35 * (1 - ext);
         } else if (a.name === 'kick') {
@@ -479,7 +592,7 @@ class Fighter {
           p.neck[0] -= 7 * ext; p.head[0] -= 8 * ext;
           p.hip[0] -= 3 * ext;
           p.legBendF = 0.25 * (1 - ext);
-          p.frontHand = [16, -80]; p.backHand = [-14, -70];
+          p.frontHand = [18, -74]; p.backHand = [-14, -66];
         } else if (a.name === 'crouchPunch') {
           p.hip = [0, -26]; p.neck = [2, -54]; p.head = [5, -65];
           p.backFoot = [-19, 0]; p.frontFoot = [16, 0];
@@ -534,14 +647,16 @@ class Fighter {
       // lying flat on back
       const flicker = this.state === 'ko' && Math.floor(this.stateT / 4) % 2 === 0;
       if (!flicker || this.state === 'down') {
-        bentLimb(c, -8, -10, 24, -4, 0.1, 12, ch.gi);          // legs
-        bentLimb(c, -8, -12, 30, -10, -0.1, 12, ch.gi);
-        bentLimb(c, -10, -14, -42, -14, 0, 22, ch.gi);          // torso
-        bentLimb(c, -36, -16, -14, -26, 0.2, 8, ch.skin);       // arm up
-        c.fillStyle = ch.skin;                                   // head
-        c.beginPath(); c.arc(-52, -16, 10, 0, Math.PI * 2); c.fill();
+        bentLimb(c, -8, -10, 26, -5, 0.1, 14, ch.gi);           // legs
+        bentLimb(c, -8, -12, 32, -10, -0.1, 14, ch.gi);
+        bentLimb(c, -10, -14, -42, -14, 0, 26, ch.gi);          // torso
+        bentLimb(c, -36, -16, -12, -28, 0.2, 10, ch.skin);      // arm up
+        dot(c, -12, -28, 6, ch.glove);
+        dot(c, -52, -16, 11, ch.skin);                          // head
         c.fillStyle = ch.hair;
-        c.beginPath(); c.arc(-54, -19, 9, Math.PI * 0.8, Math.PI * 1.9); c.fill();
+        c.beginPath(); c.arc(-54, -19, 10, Math.PI * 0.8, Math.PI * 1.9); c.fill();
+        c.fillStyle = ch.band;
+        c.fillRect(-62, -22, 20, 5);
       }
       c.restore();
       return;
@@ -549,56 +664,16 @@ class Fighter {
 
     const [hx, hy] = p.hip;
     const [nx, ny] = p.neck;
-    const shoulderB = [nx - 4, ny + 6];
-    const shoulderF = [nx + 4, ny + 5];
+    const shoulderB = [nx - 9, ny + 8];
+    const shoulderF = [nx + 9, ny + 6];
 
-    // back arm
-    bentLimb(c, shoulderB[0], shoulderB[1], p.backHand[0], p.backHand[1], p.armBendB, 9, ch.skin);
-    c.fillStyle = ch.glove;
-    c.beginPath(); c.arc(p.backHand[0], p.backHand[1], 5.5, 0, Math.PI * 2); c.fill();
-
-    // back leg
-    bentLimb(c, hx - 3, hy, p.backFoot[0], p.backFoot[1] - 4, p.legBendB, 13, ch.gi);
-    c.fillStyle = '#fff';
-    c.fillRect(p.backFoot[0] - 8, p.backFoot[1] - 7, 15, 7); // foot wrap
-
-    // torso (gi)
-    bentLimb(c, hx, hy, nx, ny, 0, 26, ch.gi);
-    bentLimb(c, hx, hy + 2, nx, ny + 8, 0, 18, ch.giDark);
-    // belt
-    c.fillStyle = ch.belt;
-    c.fillRect(hx - 13, hy - 4, 26, 7);
-
-    // front leg
-    bentLimb(c, hx + 3, hy, p.frontFoot[0], p.frontFoot[1] - 4, p.legBendF, 13, ch.gi);
-    c.fillStyle = '#fff';
-    c.fillRect(p.frontFoot[0] - 7, p.frontFoot[1] - 7, 15, 7);
-
-    // head
-    const [headX, headY] = p.head;
-    c.fillStyle = ch.skin;
-    c.beginPath(); c.arc(headX, headY, 11, 0, Math.PI * 2); c.fill();
-    // hair
-    c.fillStyle = ch.hair;
-    c.beginPath(); c.arc(headX - 1, headY - 3, 11, Math.PI * 0.9, Math.PI * 2.05); c.fill();
-    // headband
-    c.fillStyle = ch.band;
-    c.fillRect(headX - 11, headY - 6, 22, 5);
-    // headband tails
-    c.strokeStyle = ch.band; c.lineWidth = 3; c.lineCap = 'round';
-    const wave = Math.sin(this.stateT * 0.2) * 3;
-    c.beginPath();
-    c.moveTo(headX - 10, headY - 4);
-    c.lineTo(headX - 22, headY - 1 + wave);
-    c.stroke();
-    // eye
-    c.fillStyle = '#1a1a1a';
-    c.fillRect(headX + 4, headY - 2, 3, 3);
-
-    // front arm
-    bentLimb(c, shoulderF[0], shoulderF[1], p.frontHand[0], p.frontHand[1], p.armBendF, 9, ch.skin);
-    c.fillStyle = ch.glove;
-    c.beginPath(); c.arc(p.frontHand[0], p.frontHand[1], 6, 0, Math.PI * 2); c.fill();
+    drawMuscleArm(c, shoulderB[0], shoulderB[1], p.backHand[0], p.backHand[1], p.armBendB, ch);
+    drawGiLeg(c, hx - 5, hy, p.backFoot[0], p.backFoot[1], p.legBendB, ch);
+    seg(c, nx, ny + 6, p.head[0], p.head[1] + 6, 9, ch.skin);   // neck
+    drawTorso(c, hx, hy, nx, ny, ch);
+    drawGiLeg(c, hx + 5, hy, p.frontFoot[0], p.frontFoot[1], p.legBendF, ch);
+    drawHead(c, p.head[0], p.head[1], ch, this.stateT);
+    drawMuscleArm(c, shoulderF[0], shoulderF[1], p.frontHand[0], p.frontHand[1], p.armBendF, ch);
 
     c.restore();
   }
@@ -935,99 +1010,162 @@ class Game {
 
   // ---------------- Drawing ----------------
   drawStage(c) {
-    // sky
+    // sunset sky
     const sky = c.createLinearGradient(0, 0, 0, GROUND);
-    sky.addColorStop(0, '#1a1a4e');
-    sky.addColorStop(0.5, '#7a3a6a');
-    sky.addColorStop(1, '#e8804a');
+    sky.addColorStop(0, '#2a1238');
+    sky.addColorStop(0.45, '#a8302a');
+    sky.addColorStop(0.8, '#ff8830');
+    sky.addColorStop(1, '#ffc060');
     c.fillStyle = sky;
     c.fillRect(0, 0, W, GROUND);
 
-    // sun
-    c.fillStyle = '#ffd070';
-    c.beginPath(); c.arc(W / 2, GROUND - 60, 55, 0, Math.PI * 2); c.fill();
-    c.fillStyle = 'rgba(255,208,112,0.25)';
-    c.beginPath(); c.arc(W / 2, GROUND - 60, 75, 0, Math.PI * 2); c.fill();
+    // setting sun
+    c.fillStyle = 'rgba(255,225,140,0.25)';
+    c.beginPath(); c.arc(W / 2, GROUND - 95, 70, 0, Math.PI * 2); c.fill();
+    dot(c, W / 2, GROUND - 95, 48, '#ffe090');
 
-    // distant skyline
-    c.fillStyle = '#2a1535';
-    for (let i = 0; i < 14; i++) {
-      const bx = i * 72 - 20;
-      const bh = 40 + ((i * 37) % 70);
-      c.fillRect(bx, GROUND - bh, 52, bh);
-    }
-    // windows
-    c.fillStyle = 'rgba(255,220,120,0.5)';
-    for (let i = 0; i < 14; i++) {
-      const bx = i * 72 - 20;
-      const bh = 40 + ((i * 37) % 70);
-      for (let wy = GROUND - bh + 8; wy < GROUND - 10; wy += 16) {
-        if ((i + wy) % 3 !== 0) continue;
-        c.fillRect(bx + 8, wy, 5, 6);
-        c.fillRect(bx + 30, wy, 5, 6);
-      }
+    // clouds
+    c.fillStyle = 'rgba(70,25,60,0.32)';
+    const clouds = [[140, 95, 95, 14], [400, 58, 70, 11], [640, 40, 58, 9], [780, 115, 105, 15]];
+    for (const [cx2, cy2, rw, rh] of clouds) {
+      c.beginPath(); c.ellipse(cx2, cy2, rw, rh, 0, 0, Math.PI * 2); c.fill();
     }
 
-    // ground
+    // distant castle keep (small hazy pagoda silhouette on the horizon)
+    const KX = W / 2, haze = '#4a2a48';
+    c.fillStyle = haze;
+    c.fillRect(KX - 80, GROUND - 34, 160, 34);
+    let pw = 130, py = GROUND - 34;
+    for (let tier = 0; tier < 3; tier++) {
+      const wallH = 17 - tier * 2;
+      c.fillRect(KX - pw / 2 + 10, py - wallH, pw - 20, wallH);
+      py -= wallH;
+      c.beginPath();
+      c.moveTo(KX - pw / 2 - 12, py + 2);
+      c.quadraticCurveTo(KX, py - 13, KX + pw / 2 + 12, py + 2);
+      c.quadraticCurveTo(KX + pw / 4, py - 5, KX, py - 6);
+      c.quadraticCurveTo(KX - pw / 4, py - 5, KX - pw / 2 - 12, py + 2);
+      c.closePath();
+      c.fill();
+      py -= 7;
+      pw *= 0.7;
+    }
+    c.fillRect(KX - 1.5, py - 9, 3, 9); // spire
+    // lit windows on the keep
+    c.fillStyle = 'rgba(255,200,90,0.7)';
+    for (let i = -1; i <= 1; i++) c.fillRect(KX + i * 30 - 3.5, GROUND - 25, 7, 9);
+    // low tree line on the horizon
+    c.fillStyle = 'rgba(74,42,72,0.8)';
+    for (let tx = 0; tx < W; tx += 46) {
+      const th = 10 + ((tx * 13) % 9);
+      c.beginPath(); c.ellipse(tx, GROUND - 2, 32, th, 0, Math.PI, 0); c.fill();
+    }
+
+    // wooden plank floor
     const gnd = c.createLinearGradient(0, GROUND, 0, H);
-    gnd.addColorStop(0, '#9a7448');
-    gnd.addColorStop(1, '#5a4028');
+    gnd.addColorStop(0, '#c08848');
+    gnd.addColorStop(1, '#6e4a22');
     c.fillStyle = gnd;
     c.fillRect(0, GROUND, W, H - GROUND);
-    // perspective lines
-    c.strokeStyle = 'rgba(0,0,0,0.18)';
+    c.strokeStyle = 'rgba(48,26,8,0.55)';
     c.lineWidth = 2;
-    for (let i = 0; i <= 8; i++) {
-      const xTop = (i / 8) * W;
-      const xBot = W / 2 + (xTop - W / 2) * 1.7;
-      c.beginPath(); c.moveTo(xTop, GROUND); c.lineTo(xBot, H); c.stroke();
+    const rows = [GROUND + 14, GROUND + 32, GROUND + 52];
+    for (const ry of rows) {
+      c.beginPath(); c.moveTo(0, ry); c.lineTo(W, ry); c.stroke();
     }
+    c.lineWidth = 1.5;
+    for (let r = 0; r < 4; r++) {
+      const top = r === 0 ? GROUND : rows[r - 1];
+      const bot = r < 3 ? rows[r] : H;
+      for (let sx = (r % 2) * 60 + 36; sx < W; sx += 120) {
+        c.beginPath(); c.moveTo(sx, top); c.lineTo(sx, bot); c.stroke();
+      }
+    }
+    c.strokeStyle = 'rgba(30,15,5,0.7)';
+    c.lineWidth = 3;
     c.beginPath(); c.moveTo(0, GROUND); c.lineTo(W, GROUND); c.stroke();
+
+    // foreground roof-tile parapet
+    c.fillStyle = '#262a33';
+    c.fillRect(0, H - 26, W, 26);
+    for (let tx = 16; tx < W + 20; tx += 36) {
+      dot(c, tx, H - 13, 13, '#3d4452');
+      dot(c, tx, H - 13, 8, '#2a2f3a');
+      dot(c, tx, H - 13, 3.5, '#4d5668');
+    }
   }
 
   drawHud(c) {
-    const barW = 360, barH = 24, y = 24;
-    const drawBar = (x, hp, flip) => {
-      c.fillStyle = '#7a1010';
+    const barW = 330, barH = 20, y = 30;
+    const cx = W / 2;
+    const x1 = cx - 64 - barW, x2 = cx + 64;
+    const drawBar = (x, hp, anchorRight) => {
+      c.fillStyle = '#101010';
+      c.fillRect(x - 3, y - 3, barW + 6, barH + 6);
+      c.fillStyle = '#b81616';
       c.fillRect(x, y, barW, barH);
       const w = barW * (hp / MAX_HP);
-      c.fillStyle = hp > 30 ? '#f8d020' : '#f85030';
-      if (flip) c.fillRect(x + barW - w, y, w, barH);
-      else c.fillRect(x, y, w, barH);
-      c.strokeStyle = '#fff';
-      c.lineWidth = 3;
-      c.strokeRect(x, y, barW, barH);
+      c.fillStyle = '#ffd820';
+      c.fillRect(anchorRight ? x + barW - w : x, y, w, barH);
+      c.fillStyle = 'rgba(255,255,255,0.3)';
+      c.fillRect(x, y + 2, barW, 3);
+      c.strokeStyle = '#f8f8f8';
+      c.lineWidth = 2;
+      c.strokeRect(x - 2, y - 2, barW + 4, barH + 4);
     };
-    drawBar(40, this.p1.hp, true);
-    drawBar(W - 40 - barW, this.p2.hp, false);
+    drawBar(x1, this.p1.hp, true);
+    drawBar(x2, this.p2.hp, false);
 
-    // names
+    // central KO badge
+    dot(c, cx, y + barH / 2, 24, '#6e0a0a');
+    dot(c, cx, y + barH / 2, 20, '#c81414');
+    c.font = 'bold 20px Impact, "Arial Black", sans-serif';
+    c.textAlign = 'center';
+    c.fillStyle = '#ffd820';
+    c.fillText('KO', cx, y + barH / 2 + 7);
+
+    // timer below the badge
+    const tstr = String(this.timeLeft).padStart(2, '0');
+    c.font = 'bold 38px Impact, "Arial Black", sans-serif';
+    c.lineWidth = 5;
+    c.strokeStyle = '#201000';
+    c.strokeText(tstr, cx, y + 76);
+    c.fillStyle = this.timeLeft <= 10 ? '#ff5040' : '#ffd820';
+    c.fillText(tstr, cx, y + 76);
+
+    // 1P / 2P labels above bars
+    c.font = 'bold 15px "Courier New", monospace';
     c.fillStyle = '#fff';
-    c.font = 'bold 16px "Courier New", monospace';
     c.textAlign = 'left';
-    c.fillText(this.p1.char.name + (this.vsCpu ? '' : ' (P1)'), 42, y + barH + 18);
+    c.fillText('1P', x1, y - 9);
     c.textAlign = 'right';
-    c.fillText(this.p2.char.name + (this.vsCpu ? ' (CPU)' : ' (P2)'), W - 42, y + barH + 18);
+    c.fillText('2P', x2 + barW, y - 9);
+
+    // names under bars
+    const nameY = y + barH + 23;
+    c.font = 'bold 18px "Courier New", monospace';
+    c.lineWidth = 3;
+    c.strokeStyle = '#301800';
+    c.fillStyle = '#ffd820';
+    c.textAlign = 'left';
+    const n1 = this.p1.char.name + (this.vsCpu ? '' : ' 1P');
+    c.strokeText(n1, x1 + 2, nameY);
+    c.fillText(n1, x1 + 2, nameY);
+    c.textAlign = 'right';
+    const n2 = this.p2.char.name + (this.vsCpu ? ' CPU' : ' 2P');
+    c.strokeText(n2, x2 + barW - 2, nameY);
+    c.fillText(n2, x2 + barW - 2, nameY);
 
     // round win pips
-    const pip = (x, won) => {
-      c.beginPath(); c.arc(x, y + barH + 13, 6, 0, Math.PI * 2);
-      c.fillStyle = won ? '#ffd020' : 'rgba(0,0,0,0.4)';
-      c.fill();
-      c.strokeStyle = '#fff'; c.lineWidth = 1.5; c.stroke();
+    const pip = (px, won) => {
+      c.fillStyle = won ? '#ffd820' : 'rgba(0,0,0,0.45)';
+      c.fillRect(px - 5, nameY - 10, 10, 10);
+      c.strokeStyle = '#fff';
+      c.lineWidth = 1.5;
+      c.strokeRect(px - 5, nameY - 10, 10, 10);
     };
-    pip(W / 2 - 80, this.wins1 >= 1); pip(W / 2 - 100, this.wins1 >= 2);
-    pip(W / 2 + 80, this.wins2 >= 1); pip(W / 2 + 100, this.wins2 >= 2);
-
-    // timer
-    c.fillStyle = 'rgba(0,0,0,0.55)';
-    c.fillRect(W / 2 - 34, y - 6, 68, barH + 12);
-    c.strokeStyle = '#fff'; c.lineWidth = 2;
-    c.strokeRect(W / 2 - 34, y - 6, 68, barH + 12);
-    c.fillStyle = this.timeLeft <= 10 ? '#ff5040' : '#fff';
-    c.font = 'bold 30px "Courier New", monospace';
-    c.textAlign = 'center';
-    c.fillText(String(this.timeLeft).padStart(2, '0'), W / 2, y + 22);
+    pip(cx - 40, this.wins1 >= 1); pip(cx - 60, this.wins1 >= 2);
+    pip(cx + 40, this.wins2 >= 1); pip(cx + 60, this.wins2 >= 2);
   }
 
   drawAnnounce(c) {
@@ -1096,9 +1234,9 @@ class Game {
       c.fillStyle = '#fff';
       c.fillText('PRESS ENTER', W / 2, 430);
     }
-    c.font = '14px "Courier New", monospace';
-    c.fillStyle = 'rgba(255,255,255,0.6)';
-    c.fillText('A fan-made homage. Not affiliated with Capcom.', W / 2, 510);
+    c.font = 'bold 17px "Courier New", monospace';
+    c.fillStyle = 'rgba(255,255,255,0.65)';
+    c.fillText('A fan-made homage. Not affiliated with Capcom.', W / 2, 500);
   }
 
   drawMode(c) {
@@ -1117,8 +1255,8 @@ class Game {
       c.fillStyle = sel ? '#fff' : 'rgba(255,255,255,0.45)';
       c.fillText((sel ? '▶ ' : '  ') + o + (sel ? ' ◀' : '  '), W / 2, 260 + i * 60);
     });
-    c.font = '16px "Courier New", monospace';
-    c.fillStyle = 'rgba(255,255,255,0.7)';
+    c.font = 'bold 18px "Courier New", monospace';
+    c.fillStyle = 'rgba(255,255,255,0.75)';
     c.fillText('W/S or ↑/↓ to choose — ENTER to confirm', W / 2, 430);
   }
 
@@ -1137,21 +1275,50 @@ class Game {
       // card
       c.fillStyle = '#16213a';
       c.fillRect(cx - 90, cy - 110, 180, 230);
-      // portrait: big head + gi shoulders
+      // shoulders & open-chest gi
       c.fillStyle = ch.gi;
-      c.beginPath(); c.arc(cx, cy + 60, 70, Math.PI, 0); c.fill();
+      c.beginPath();
+      c.moveTo(cx - 80, cy + 120);
+      c.quadraticCurveTo(cx - 82, cy + 32, cx - 38, cy + 28);
+      c.lineTo(cx + 38, cy + 28);
+      c.quadraticCurveTo(cx + 82, cy + 32, cx + 80, cy + 120);
+      c.closePath(); c.fill();
+      // bare chest
       c.fillStyle = ch.skin;
-      c.beginPath(); c.arc(cx, cy - 10, 44, 0, Math.PI * 2); c.fill();
+      c.beginPath();
+      c.moveTo(cx - 26, cy + 30);
+      c.lineTo(cx + 26, cy + 30);
+      c.lineTo(cx, cy + 100);
+      c.closePath(); c.fill();
+      // pecs
+      c.strokeStyle = ch.skinDark;
+      c.lineWidth = 3;
+      c.beginPath(); c.arc(cx - 11, cy + 52, 13, Math.PI * 0.1, Math.PI * 0.9); c.stroke();
+      c.beginPath(); c.arc(cx + 11, cy + 52, 13, Math.PI * 0.1, Math.PI * 0.9); c.stroke();
+      // lapels
+      c.strokeStyle = ch.giDark;
+      c.lineWidth = 7;
+      c.beginPath(); c.moveTo(cx - 27, cy + 28); c.lineTo(cx, cy + 100); c.stroke();
+      c.beginPath(); c.moveTo(cx + 27, cy + 28); c.lineTo(cx + 1, cy + 100); c.stroke();
+      // neck + head
+      c.fillStyle = ch.skin;
+      c.fillRect(cx - 12, cy + 12, 24, 20);
+      c.beginPath(); c.arc(cx, cy - 10, 42, 0, Math.PI * 2); c.fill();
       c.fillStyle = ch.hair;
-      c.beginPath(); c.arc(cx - 3, cy - 22, 44, Math.PI * 0.85, Math.PI * 2.1); c.fill();
+      c.beginPath(); c.arc(cx - 3, cy - 22, 42, Math.PI * 0.85, Math.PI * 2.1); c.fill();
       c.fillStyle = ch.band;
-      c.fillRect(cx - 44, cy - 32, 88, 14);
+      c.fillRect(cx - 42, cy - 32, 84, 13);
       c.fillStyle = '#1a1a1a';
-      c.fillRect(cx - 18, cy - 4, 9, 8);
-      c.fillRect(cx + 11, cy - 4, 9, 8);
+      c.fillRect(cx - 18, cy - 4, 10, 7);
+      c.fillRect(cx + 8, cy - 4, 10, 7);
+      c.fillRect(cx - 20, cy - 13, 13, 4);
+      c.fillRect(cx + 7, cy - 13, 13, 4);
+      // name strip
+      c.fillStyle = 'rgba(8,12,26,0.85)';
+      c.fillRect(cx - 90, cy + 86, 180, 34);
       c.font = 'bold 26px "Courier New", monospace';
       c.fillStyle = '#fff';
-      c.fillText(ch.name, cx, cy + 105);
+      c.fillText(ch.name, cx, cy + 111);
 
       // selection borders
       const border = (sel, done, col, off) => {
@@ -1165,7 +1332,7 @@ class Game {
       border(this.sel2 === i, this.done2, '#ff5040', 6);
     });
 
-    c.font = '16px "Courier New", monospace';
+    c.font = 'bold 18px "Courier New", monospace';
     c.fillStyle = '#7ab0ff';
     c.fillText('P1: A/D move — F confirm', W / 2 - 240, 470);
     c.fillStyle = '#ff8a7a';
@@ -1186,7 +1353,7 @@ class Game {
     this.drawAnnounce(c);
 
     if (this.screen === 'fight' && this.screenT < 240 && this.round === 1) {
-      c.font = '14px "Courier New", monospace';
+      c.font = 'bold 18px "Courier New", monospace';
       c.textAlign = 'center';
       c.fillStyle = 'rgba(255,255,255,0.75)';
       c.fillText('P1: WASD move · F punch · G kick · ↓→+F Hadouken · hold back to block', W / 2, H - 14);
@@ -1206,6 +1373,14 @@ class Game {
 
 // ---------------- Main loop ----------------
 const game = new Game();
+
+// Retro look: render at half resolution, upscale with nearest-neighbor.
+const PIXEL = 2;
+const off = document.createElement('canvas');
+off.width = W / PIXEL;
+off.height = H / PIXEL;
+const octx = off.getContext('2d');
+
 let last = 0, acc = 0;
 const STEP = 1000 / 60;
 
@@ -1217,7 +1392,12 @@ function loop(ts) {
     game.update();
     acc -= STEP;
   }
-  game.draw(ctx);
+  octx.save();
+  octx.scale(1 / PIXEL, 1 / PIXEL);
+  game.draw(octx);
+  octx.restore();
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(off, 0, 0, W, H);
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
