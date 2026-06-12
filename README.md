@@ -40,6 +40,10 @@ Menus: **Enter** to confirm, **Esc** to go back.
 - **Crouch + Kick** — sweep (knocks down)
 - **Jump + Punch/Kick** — aerial slash
 
+Hits draw blood — sprays scale with damage, knockdowns and KOs gush, and
+stains pool on the arena floor for the rest of the round. Round winners
+perform a victory kata over their fallen opponent.
+
 ### Special moves
 
 - **Energy wave** (↓ → + Punch) — projectile; waves cancel each other out
@@ -57,9 +61,10 @@ Menus: **Enter** to confirm, **Esc** to go back.
   A WebAudio synth fallback covers any file that fails to load.
 - **Announcer voice** (Kenney Voiceover Pack — Fighter): "Ready?", "Go!",
   "Round", "Final Round", "Hurry up!", "Time over", "You win / You lose".
-- **Music** is synthesized live: an eerie Japanese-style score built from koto
-  plucks on a hirajoshi pentatonic scale, taiko drums, and temple bells; it
-  shifts from a sparse menu theme to a driving battle rhythm. **M** toggles it.
+- **Music** is real recorded tracks from [FreePD.com](https://freepd.com) (CC0):
+  "Coy Koi" (Japanese koto piece) on the menus and "Ancient Rite" (grim ritual
+  percussion) in battle, looped seamlessly. **M** toggles music.
+- **No synthesized audio anywhere** — every sound in the game is a recorded asset.
 
 ## Match flow
 
@@ -95,7 +100,8 @@ Real pixel-art sprite characters with full animation sets
   ([itch.io](https://brullov.itch.io/oak-woods)) — free for commercial and
   non-commercial use.
 - Sound effects & announcer voice: **Kenney** audio packs — Impact Sounds,
-  RPG Audio, UI Audio, Voiceover Pack: Fighter ([kenney.nl](https://kenney.nl),
-  CC0).
+  RPG Audio, Sci-Fi Sounds, UI Audio, Voiceover Pack: Fighter
+  ([kenney.nl](https://kenney.nl), CC0).
+- Music: "Coy Koi" and "Ancient Rite" from **FreePD.com** (CC0).
 
 *A fan-made homage for educational purposes. Not affiliated with or endorsed by Capcom.*
