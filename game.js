@@ -24,6 +24,7 @@ let audioCtx = null;
 function initAudio() {
   if (!audioCtx) {
     try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { /* no audio */ }
+    if (audioCtx) decodeAllSamples();
   }
 }
 function beep(freq, dur, type = 'square', vol = 0.12, slide = 0) {
@@ -66,17 +67,97 @@ function noiseSfx(dur, f0, f1, vol, type = 'bandpass', q = 1.5) {
   n.start(t);
   n.stop(t + dur + 0.02);
 }
+// ---------------- Sampled SFX (Kenney audio packs, CC0) ----------------
+const SAMPLES = {};
+function loadSample(name, url) {
+  SAMPLES[name] = { raw: null, buf: null };
+  if (typeof fetch !== 'function') return;
+  fetch(url)
+    .then(r => (r.ok ? r.arrayBuffer() : null))
+    .then(a => {
+      if (!a) return;
+      SAMPLES[name].raw = a;
+      if (audioCtx) decodeSample(name);
+    })
+    .catch(() => {});
+}
+function decodeSample(name) {
+  const s = SAMPLES[name];
+  if (!s || !s.raw || s.buf) return;
+  audioCtx.decodeAudioData(s.raw.slice(0), b => { s.buf = b; }, () => {});
+}
+function decodeAllSamples() {
+  for (const n in SAMPLES) decodeSample(n);
+}
+function playSample(names, vol = 1, rateJitter = 0.05) {
+  if (!audioCtx) return false;
+  const list = Array.isArray(names) ? names : [names];
+  const cands = list.filter(n => SAMPLES[n] && SAMPLES[n].buf);
+  if (!cands.length) return false;
+  const src = audioCtx.createBufferSource();
+  src.buffer = SAMPLES[cands[Math.floor(Math.random() * cands.length)]].buf;
+  src.playbackRate.value = 1 + (Math.random() * 2 - 1) * rateJitter;
+  const g = audioCtx.createGain();
+  g.gain.value = vol;
+  src.connect(g).connect(audioCtx.destination);
+  src.start();
+  return true;
+}
+const SFX_FILES = {
+  slice1: 'assets/sfx/knife_slice.ogg', slice2: 'assets/sfx/knife_slice_2.ogg',
+  swing1: 'assets/sfx/draw_knife_1.ogg', swing2: 'assets/sfx/draw_knife_2.ogg', swing3: 'assets/sfx/draw_knife_3.ogg',
+  punchH1: 'assets/sfx/impact_punch_heavy_000.ogg', punchH2: 'assets/sfx/impact_punch_heavy_001.ogg', punchH3: 'assets/sfx/impact_punch_heavy_002.ogg',
+  punchM1: 'assets/sfx/impact_punch_medium_000.ogg', punchM2: 'assets/sfx/impact_punch_medium_001.ogg',
+  chop: 'assets/sfx/chop.ogg',
+  metal1: 'assets/sfx/impact_metal_light_000.ogg', metal2: 'assets/sfx/impact_metal_light_001.ogg', metal3: 'assets/sfx/impact_metal_medium_000.ogg',
+  body1: 'assets/sfx/impact_soft_heavy_000.ogg', body2: 'assets/sfx/impact_soft_heavy_001.ogg',
+  floor: 'assets/sfx/impact_wood_heavy_000.ogg',
+  gong: 'assets/sfx/impact_bell_heavy_000.ogg',
+  land1: 'assets/sfx/footstep_wood_000.ogg', land2: 'assets/sfx/footstep_wood_001.ogg',
+  cloth1: 'assets/sfx/cloth_1.ogg', cloth2: 'assets/sfx/cloth_3.ogg',
+  click1: 'assets/sfx/click1.wav', click2: 'assets/sfx/click3.wav',
+  vo_ready: 'assets/vo/ready.ogg', vo_go: 'assets/vo/go.ogg',
+  vo_round: 'assets/vo/round.ogg', vo_final_round: 'assets/vo/final_round.ogg',
+  vo_you_win: 'assets/vo/you_win.ogg', vo_you_lose: 'assets/vo/you_lose.ogg',
+  vo_time_over: 'assets/vo/time_over.ogg', vo_hurry: 'assets/vo/hurry_up.ogg',
+  vo_tie: 'assets/vo/its_a_tie.ogg', vo_congrats: 'assets/vo/congratulations.ogg',
+};
+for (const [n, u] of Object.entries(SFX_FILES)) loadSample(n, u);
+const VOICE = { say: (name, vol = 1) => playSample(name, vol, 0.015) };
+
 const SFX = {
   // metallic sword impact: ring + body thump
-  hit:      () => { noiseSfx(0.09, 3200, 2200, 0.14, 'bandpass', 7); beep(1480, 0.18, 'square', 0.045, -800); beep(74, 0.16, 'sine', 0.26, -28); },
-  block:    () => { noiseSfx(0.06, 1800, 1400, 0.1, 'bandpass', 5); beep(330, 0.08, 'square', 0.07, -90); },
-  whoosh:   () => noiseSfx(0.17, 950, 240, 0.16, 'bandpass', 1.2),
+  hit: () => {
+    const ok = playSample(['slice1', 'slice2'], 0.85);
+    playSample(['punchH1', 'punchH2', 'punchH3'], 0.8);
+    if (!ok) { noiseSfx(0.09, 3200, 2200, 0.14, 'bandpass', 7); beep(74, 0.16, 'sine', 0.26, -28); }
+  },
+  block: () => {
+    if (!playSample(['metal1', 'metal2', 'metal3'], 0.7)) {
+      noiseSfx(0.06, 1800, 1400, 0.1, 'bandpass', 5); beep(330, 0.08, 'square', 0.07, -90);
+    }
+  },
+  whoosh: () => {
+    if (!playSample(['swing1', 'swing2', 'swing3'], 0.55, 0.1)) noiseSfx(0.17, 950, 240, 0.16, 'bandpass', 1.2);
+  },
   fireball: () => { beep(220, 0.32, 'sawtooth', 0.1, 320); noiseSfx(0.3, 400, 1600, 0.08, 'bandpass', 2); },
-  jump:     () => beep(260, 0.1, 'triangle', 0.06, 160),
-  ko:       () => { beep(300, 0.8, 'sawtooth', 0.2, -262); noiseSfx(0.5, 900, 90, 0.16, 'lowpass'); },
-  select:   () => beep(700, 0.06, 'square', 0.08),
-  confirm:  () => { beep(520, 0.08, 'square', 0.1); setTimeout(() => beep(780, 0.1, 'square', 0.1), 70); },
-  sweep:    () => { beep(120, 0.18, 'sawtooth', 0.13, -62); noiseSfx(0.14, 500, 150, 0.1, 'lowpass'); },
+  jump: () => {
+    if (!playSample(['cloth1', 'cloth2'], 0.7, 0.1)) beep(260, 0.1, 'triangle', 0.06, 160);
+  },
+  land: () => playSample(['land1', 'land2'], 0.4, 0.1),
+  fall: () => { playSample(['body1', 'body2'], 0.9); playSample('floor', 0.5); },
+  ko: () => {
+    beep(300, 0.8, 'sawtooth', 0.16, -262);
+    if (!playSample(['body1', 'body2'], 1)) noiseSfx(0.5, 900, 90, 0.16, 'lowpass');
+  },
+  select: () => { if (!playSample('click1', 0.8, 0)) beep(700, 0.06, 'square', 0.08); },
+  confirm: () => { if (!playSample('click2', 0.9, 0)) beep(520, 0.08, 'square', 0.1); },
+  sweep: () => {
+    const ok = playSample(['punchM1', 'punchM2'], 0.85);
+    playSample('chop', 0.5);
+    if (!ok) { beep(120, 0.18, 'sawtooth', 0.13, -62); }
+  },
+  gong: () => { if (!playSample('gong', 0.85, 0) && audioCtx && musicGain) templeBell(220, audioCtx.currentTime, 0.1); },
 };
 
 // ---------------- Music (procedural eerie Japanese score) ----------------
@@ -221,6 +302,7 @@ const CHARACTERS = [
     frames: { Idle: 8, Run: 8, Jump: 2, Fall: 2, Attack1: 6, Attack2: 6, TakeHit: 4, Death: 6 },
     // fraction of the attack during which the blade is visually extended
     swing: { Attack1: [0.62, 0.88], Attack2: [0.62, 0.88] },
+    face: { x: 76, y: 64, s: 36 },
     moves: { hadouken: 'TEMPEST WAVE', dashSlash: 'GALE DASH', risingSlash: 'DRAGON ASCENT' },
     fireball: '#58b4ff',
     taunt: 'MY BLADE NEVER WAVERS!',
@@ -230,6 +312,7 @@ const CHARACTERS = [
     scale: 3.3, footY: 127, cx: 102,
     frames: { Idle: 4, Run: 8, Jump: 2, Fall: 2, Attack1: 4, Attack2: 4, TakeHit: 3, Death: 7 },
     swing: { Attack1: [0.26, 0.55], Attack2: [0.26, 0.55] },
+    face: { x: 84, y: 68, s: 36 },
     moves: { hadouken: 'PHANTOM WAVE', dashSlash: 'SHADOW DASH', risingSlash: 'DEMON RISE' },
     fireball: '#c44dff',
     taunt: 'YOU WERE NEVER A MATCH!',
@@ -438,9 +521,10 @@ class Fighter {
       if (this.y >= GROUND) {
         this.y = GROUND;
         this.vy = 0;
-        if (this.state === 'jump') { this.state = 'idle'; this.attack = null; }
-        if (this.state === 'hit') { this.state = 'down'; this.downTimer = 36; this.stateT = 0; }
-        if (this.state === 'ko') { /* stays down */ }
+        if (this.state === 'jump') { this.state = 'idle'; this.attack = null; SFX.land(); }
+        if (this.state === 'attack') SFX.land();
+        if (this.state === 'hit') { this.state = 'down'; this.downTimer = 36; this.stateT = 0; SFX.fall(); }
+        if (this.state === 'ko' && this.stateT > 2) SFX.fall();
         this.vx = 0;
       }
     }
@@ -792,7 +876,11 @@ class Game {
     this.p2 = new Fighter(CHARACTERS[this.sel2], 710, -1, false);
     this.wins1 = 0; this.wins2 = 0;
     this.round = 1;
-    this.startRound();
+    this.projectiles = [];
+    this.sparks = [];
+    this.screen = 'versus';
+    this.screenT = 0;
+    SFX.gong();
   }
 
   startRound() {
@@ -865,17 +953,47 @@ class Game {
         break;
       }
 
-      case 'intro':
-        if (this.screenT === 1) this.setAnnounce('ROUND ' + this.round, 80);
-        if (this.screenT === 85) this.setAnnounce('FIGHT!', 45);
-        if (this.screenT >= 100) {
+      case 'versus':
+        if (this.screenT >= 175 || keysPressed.has('Enter') || keysPressed.has('KeyF')) {
+          this.startRound();
+        }
+        break;
+
+      case 'intro': {
+        const k = this.screenT;
+        const r1 = this.round === 1;
+        const finalRound = this.wins1 === 1 && this.wins2 === 1;
+        if (k === 1) {
+          this.setAnnounce(finalRound ? 'FINAL ROUND' : 'ROUND ' + this.round, 70);
+          SFX.gong();
+          VOICE.say(finalRound ? 'vo_final_round' : 'vo_round');
+        }
+        if (r1) {
+          // kata demonstration: each fighter shows their blade work
+          if (k === 55) this.p1.startAttack('punch');
+          if (k === 90) this.p2.startAttack('kick');
+          if (k === 125) this.p1.startAttack('sweep');
+          if (k === 160) this.p2.startAttack('punch');
+          // countdown
+          if (k === 200) { this.setAnnounce('READY?', 40); VOICE.say('vo_ready'); }
+          if (k === 245) { this.setAnnounce('3', 26); SFX.select(); }
+          if (k === 275) { this.setAnnounce('2', 26); SFX.select(); }
+          if (k === 305) { this.setAnnounce('1', 26); SFX.select(); }
+        } else {
+          if (k === 60) { this.setAnnounce('READY?', 32); VOICE.say('vo_ready'); }
+        }
+        const startAt = r1 ? 335 : 100;
+        if (k >= startAt) {
           this.screen = 'fight';
           this.screenT = 0;
+          this.setAnnounce('FIGHT!', 45);
+          VOICE.say('vo_go');
           this.p1.controllable = true;
           this.p2.controllable = true;
         }
         this.updateFight(true);
         break;
+      }
 
       case 'fight':
         this.updateFight(false);
@@ -883,6 +1001,7 @@ class Game {
         if (++this.timerAcc >= 60) {
           this.timerAcc = 0;
           if (--this.timeLeft <= 0) this.endRound(true);
+          else if (this.timeLeft === 10) VOICE.say('vo_hurry');
         }
         break;
 
@@ -894,6 +1013,8 @@ class Game {
             this.screenT = 0;
             const winner = this.wins1 >= ROUNDS_TO_WIN ? this.p1 : this.p2;
             this.setAnnounce(winner.char.name + ' WINS!', 9999, winner.char.taunt);
+            if (this.vsCpu) VOICE.say(winner === this.p1 ? 'vo_you_win' : 'vo_you_lose');
+            else VOICE.say('vo_congrats');
           } else {
             this.round++;
             this.startRound();
@@ -1013,6 +1134,7 @@ class Game {
       if (this.p1.hp > this.p2.hp) winner = this.p1;
       else if (this.p2.hp > this.p1.hp) winner = this.p2;
       this.setAnnounce('TIME UP!', 90);
+      VOICE.say(winner ? 'vo_time_over' : 'vo_tie');
     } else {
       winner = this.p1.hp > 0 ? this.p1 : this.p2;
       this.setAnnounce('K.O.!', 90);
@@ -1263,6 +1385,71 @@ class Game {
     c.fillText(this.vsCpu ? 'P2: CPU' : 'P2: ←/→ move — K confirm', W / 2 + 240, 470);
   }
 
+  drawVersus(c) {
+    this.drawStage(c);
+    c.fillStyle = 'rgba(8,4,18,0.84)';
+    c.fillRect(0, 0, W, H);
+    const t = this.screenT;
+    const slide = Math.min(1, t / 22);
+    const ease = 1 - (1 - slide) * (1 - slide);
+    const drawFace = (ch, side) => {
+      const img = SHEETS[ch.id].Idle;
+      const fx = ch.face;
+      if (!img || !img.complete || !fx) return;
+      const size = fx.s * 7;
+      const cx = side === 'left' ? lerp(-220, 200, ease) : lerp(W + 220, W - 200, ease);
+      const cy = 225;
+      c.fillStyle = side === 'left' ? 'rgba(40,80,200,0.3)' : 'rgba(200,40,40,0.3)';
+      c.fillRect(cx - size / 2 - 12, cy - size / 2 - 12, size + 24, size + 24);
+      c.strokeStyle = side === 'left' ? '#4090ff' : '#ff5040';
+      c.lineWidth = 5;
+      c.strokeRect(cx - size / 2 - 12, cy - size / 2 - 12, size + 24, size + 24);
+      c.save();
+      c.beginPath();
+      c.rect(cx - size / 2, cy - size / 2, size, size);
+      c.clip();
+      c.imageSmoothingEnabled = false;
+      c.translate(cx, cy);
+      const flip = (side === 'right') === (ch.baseFacing === 1) ? -1 : 1;
+      c.scale(7 * flip, 7);
+      c.drawImage(img, fx.x, fx.y, fx.s, fx.s, -fx.s / 2, -fx.s / 2, fx.s, fx.s);
+      c.restore();
+      c.font = 'bold 32px "Courier New", monospace';
+      c.textAlign = 'center';
+      c.lineWidth = 5;
+      c.strokeStyle = '#140826';
+      c.strokeText(ch.name, cx, cy + size / 2 + 52);
+      c.fillStyle = '#ffd820';
+      c.fillText(ch.name, cx, cy + size / 2 + 52);
+    };
+    drawFace(this.p1.char, 'left');
+    drawFace(this.p2.char, 'right');
+    if (t > 18) {
+      const pulse = 1 + 0.07 * Math.sin(t * 0.16);
+      c.save();
+      c.translate(W / 2, 215);
+      c.scale(pulse, pulse);
+      c.font = 'bold 115px Impact, "Arial Black", sans-serif';
+      c.textAlign = 'center';
+      c.lineWidth = 11;
+      c.strokeStyle = '#3a1500';
+      c.strokeText('VS', 0, 42);
+      const grad = c.createLinearGradient(0, -60, 0, 42);
+      grad.addColorStop(0, '#fff0a0');
+      grad.addColorStop(1, '#ff8020');
+      c.fillStyle = grad;
+      c.fillText('VS', 0, 42);
+      c.restore();
+    }
+    if (t > 45) {
+      c.font = 'bold 17px "Courier New", monospace';
+      c.textAlign = 'center';
+      c.fillStyle = 'rgba(255,255,255,0.85)';
+      c.fillText('"' + this.p1.char.taunt + '"', W / 4 + 14, 490);
+      c.fillText('"' + this.p2.char.taunt + '"', (W * 3) / 4 - 14, 490);
+    }
+  }
+
   drawGhosts(c, f) {
     const ch = f.char;
     for (const g of f.ghosts) {
@@ -1365,6 +1552,7 @@ class Game {
       case 'title': this.drawTitle(c); break;
       case 'mode': this.drawMode(c); break;
       case 'select': this.drawSelect(c); break;
+      case 'versus': this.drawVersus(c); break;
       default: this.drawFightScreen(c); break;
     }
   }
