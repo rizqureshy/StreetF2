@@ -43,27 +43,30 @@ Menus: **Enter** to confirm, **Esc** to go back.
 
 ## Fighters
 
-Original characters inspired by classic world-warrior and comic-hero archetypes:
+Real pixel-art sprite characters with full animation sets
+(idle, run, jump, fall, two attacks, take-hit, death):
 
-- **AKIRA** — stoic karateka in a white gi, blue fireball
-- **BLAZE** — hot-headed brawler in a red gi, orange fireball
-- **APEX** — caped hero in a blue muscle suit with a chest emblem,
-  spiky blond hair, and a flowing red cape; yellow energy blast
-
-All are drawn with defined pecs/abs and bulging biceps — procedurally
-rendered with canvas primitives (no sprite assets). Fighters render at
-1.6x scale for big, readable silhouettes, with hit-freeze and screen
-shake on heavy impacts.
+- **KAITO** — wandering swordsman in a straw hat, blue energy wave
+- **KENJI** — masked rogue samurai, purple energy wave
 
 ## Tech notes
 
 - Single-file engine (`game.js`): fixed 60fps timestep, frame-data based attacks
   (startup / active / recovery), hitbox vs hurtbox collision, hit/block stun,
   knockdowns, and a quarter-circle-forward input detector for specials.
-- Retro look: the scene renders at half resolution and is upscaled with
-  nearest-neighbor for a chunky pixel feel.
-- Stage inspired by classic castle-rooftop arenas: sunset sky, pagoda
-  silhouette, wooden plank floor, foreground roof-tile parapet.
+- Sprite-sheet renderer: animation states map onto the fighter state machine,
+  with frame timing synced to attack frame data. Nearest-neighbor scaling
+  keeps the pixel art crisp.
+- Hit-freeze frames and screen shake on heavy impacts.
 - Sound effects synthesized at runtime with WebAudio.
+
+## Art credits
+
+- Fighter sprites: ["Martial Hero"](https://luizmelo.itch.io/martial-hero) and
+  ["Martial Hero 2"](https://luizmelo.itch.io/martial-hero-2) by **LuizMelo** —
+  free to use in any project.
+- Background & shop: "Oak Woods" environment asset pack by **brullov**
+  ([itch.io](https://brullov.itch.io/oak-woods)) — free for commercial and
+  non-commercial use.
 
 *A fan-made homage for educational purposes. Not affiliated with or endorsed by Capcom.*
