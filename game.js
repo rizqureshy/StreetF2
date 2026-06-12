@@ -49,14 +49,14 @@ function decodeSample(name) {
 function decodeAllSamples() {
   for (const n in SAMPLES) decodeSample(n);
 }
-function playSample(names, vol = 1, rateJitter = 0.05) {
+function playSample(names, vol = 1, rateJitter = 0.05, baseRate = 1) {
   if (!audioCtx) return false;
   const list = Array.isArray(names) ? names : [names];
   const cands = list.filter(n => SAMPLES[n] && SAMPLES[n].buf);
   if (!cands.length) return false;
   const src = audioCtx.createBufferSource();
   src.buffer = SAMPLES[cands[Math.floor(Math.random() * cands.length)]].buf;
-  src.playbackRate.value = 1 + (Math.random() * 2 - 1) * rateJitter;
+  src.playbackRate.value = baseRate * (1 + (Math.random() * 2 - 1) * rateJitter);
   const g = audioCtx.createGain();
   g.gain.value = vol;
   src.connect(g).connect(audioCtx.destination);
@@ -227,17 +227,17 @@ const assetsReady = () => assetsLoaded >= assetsTotal;
 // startup/active/recovery are re-windowed per character so the hit
 // lands exactly when that fighter's blade is visually extended.
 const ATTACKS = {
-  punch:       { startup: 9,  active: 7,  recovery: 14, damage: 7,  kb: 5,   box: { x: 25, y: -215, w: 275, h: 190 }, anim: 'Attack1' },
-  kick:        { startup: 11, active: 7,  recovery: 16, damage: 9,  kb: 6.5, box: { x: 25, y: -195, w: 285, h: 175 }, anim: 'Attack2' },
-  crouchPunch: { startup: 7,  active: 6,  recovery: 11, damage: 5,  kb: 4,   box: { x: 20, y: -170, w: 250, h: 150 }, anim: 'Attack1', crouch: true },
-  sweep:       { startup: 9,  active: 7,  recovery: 16, damage: 7,  kb: 4,   box: { x: 15, y: -65,  w: 235, h: 65 },  anim: 'Attack2', crouch: true, knockdown: true },
-  jumpKick:    { startup: 6,  active: 12, recovery: 8,  damage: 9,  kb: 6,   box: { x: 0,  y: -150, w: 230, h: 130 }, anim: 'Attack2', air: true },
-  hadouken:    { startup: 16, active: 1,  recovery: 22, damage: 0,  kb: 0,   box: null, anim: 'Attack1', projectile: true, special: true },
-  dashSlash:   { startup: 10, active: 12, recovery: 14, damage: 10, kb: 7,   box: { x: 10, y: -195, w: 290, h: 175 }, anim: 'Attack2', knockdown: true, dash: 8, chip: 2, special: true },
-  risingSlash: { startup: 8,  active: 14, recovery: 18, damage: 11, kb: 6,   box: { x: -25, y: -290, w: 230, h: 270 }, anim: 'Attack1', knockdown: true, rising: true, chip: 2, special: true },
+  punch:       { startup: 12, active: 9,  recovery: 19, damage: 7,  kb: 5,   box: { x: 25, y: -215, w: 275, h: 190 }, anim: 'Attack1' },
+  kick:        { startup: 14, active: 9,  recovery: 22, damage: 9,  kb: 6.5, box: { x: 25, y: -195, w: 285, h: 175 }, anim: 'Attack2' },
+  crouchPunch: { startup: 9,  active: 8,  recovery: 15, damage: 5,  kb: 4,   box: { x: 20, y: -170, w: 250, h: 150 }, anim: 'Attack1', crouch: true },
+  sweep:       { startup: 12, active: 9,  recovery: 21, damage: 7,  kb: 4,   box: { x: 15, y: -65,  w: 235, h: 65 },  anim: 'Attack2', crouch: true, knockdown: true },
+  jumpKick:    { startup: 8,  active: 14, recovery: 10, damage: 9,  kb: 6,   box: { x: 0,  y: -150, w: 230, h: 130 }, anim: 'Attack2', air: true },
+  hadouken:    { startup: 20, active: 1,  recovery: 28, damage: 0,  kb: 0,   box: null, anim: 'Attack1', projectile: true, special: true },
+  dashSlash:   { startup: 13, active: 15, recovery: 18, damage: 10, kb: 7,   box: { x: 10, y: -195, w: 290, h: 175 }, anim: 'Attack2', knockdown: true, dash: 7, chip: 2, special: true },
+  risingSlash: { startup: 10, active: 17, recovery: 23, damage: 11, kb: 6,   box: { x: -25, y: -290, w: 230, h: 270 }, anim: 'Attack1', knockdown: true, rising: true, chip: 2, special: true },
 };
-const HITSTUN = 20;
-const BLOCKSTUN = 14;
+const HITSTUN = 26;
+const BLOCKSTUN = 18;
 
 // ---------------- Helpers ----------------
 function rectsOverlap(a, b) {
@@ -752,9 +752,160 @@ class Game {
     this.sel1 = 0; this.sel2 = 1;
     this.done1 = false; this.done2 = false;
     this.demoT = 0;
+    this.shake = 0;
+    this.slowmo = 0;
+    this.zoom = 1;
+    this.camX = W / 2;
+    this.letterbox = 0;
+    this.setWeather(['leaves', 'rain', 'storm'][Math.floor(Math.random() * 3)]);
+  }
+
+  setWeather(kind) {
+    this.weather = kind;
+    this.weatherT = 0;
+    this.leaves = [];
+    this.rain = [];
+    this.splashes = [];
+    this.lightning = { next: 180 + Math.random() * 240, flash: 0, boltT: 0, bolt: null, thunderIn: 0 };
+  }
+
+  updateWeather() {
+    const w = this.weather;
+    this.weatherT++;
+    this.wind = Math.sin(this.weatherT * 0.003) * 0.9 - 0.6;
+    // drifting leaves
+    const maxLeaves = w === 'leaves' ? 16 : 5;
+    if (this.leaves.length < maxLeaves && Math.random() < 0.07) {
+      this.leaves.push({
+        x: Math.random() < 0.55 ? W + 24 : Math.random() * W,
+        y: -16 - Math.random() * 40,
+        vy: 0.5 + Math.random() * 0.9,
+        drift: 1 + Math.random() * 2.2,
+        phase: Math.random() * 6.28,
+        spin: Math.random() * 6.28,
+        vr: (Math.random() - 0.5) * 0.12,
+        size: 3.5 + Math.random() * 3,
+        color: ['#c87830', '#d8a040', '#9a5a20', '#b8642a'][Math.floor(Math.random() * 4)],
+      });
+    }
+    for (const l of this.leaves) {
+      l.phase += 0.05 + Math.random() * 0.02;
+      l.x += this.wind * l.drift + Math.sin(l.phase) * 1.3;
+      l.y += l.vy + Math.cos(l.phase * 0.7) * 0.5;
+      l.spin += l.vr;
+    }
+    this.leaves = this.leaves.filter(l => l.y < H + 20 && l.x > -40);
+    // rain
+    if (w === 'rain' || w === 'storm') {
+      const drops = w === 'storm' ? 9 : 5;
+      for (let i = 0; i < drops; i++) {
+        if (this.rain.length > 230) break;
+        this.rain.push({
+          x: Math.random() * (W + 220) - 110, y: -24,
+          spd: 16 + Math.random() * 8,
+          len: 13 + Math.random() * 11,
+          floor: GROUND + Math.random() * 80,
+        });
+      }
+      for (const d of this.rain) {
+        d.y += d.spd;
+        d.x -= 3.5;
+        if (d.y >= d.floor && this.splashes.length < 70) {
+          this.splashes.push({ x: d.x, y: d.floor, t: 0 });
+          d.y = 9999;
+        }
+      }
+      this.rain = this.rain.filter(d => d.y < 1000);
+      this.splashes = this.splashes.filter(s => ++s.t < 9);
+      // lightning
+      const L = this.lightning;
+      if (--L.next <= 0) {
+        L.flash = 14;
+        L.boltT = 9;
+        L.thunderIn = 13;
+        const pts = [];
+        let bx = 120 + Math.random() * (W - 240), by = 0;
+        while (by < GROUND - 30) {
+          pts.push([bx, by]);
+          by += 32 + Math.random() * 36;
+          bx += (Math.random() - 0.5) * 64;
+        }
+        pts.push([bx, GROUND]);
+        L.bolt = pts;
+        L.next = (w === 'storm' ? 260 : 620) + Math.random() * 420;
+      }
+      if (L.flash > 0) L.flash--;
+      if (L.boltT > 0) L.boltT--;
+      if (L.thunderIn > 0 && --L.thunderIn === 0) {
+        playSample(['expl1', 'expl2', 'expl3'], 0.6, 0.15, 0.45);
+        this.shake = Math.max(this.shake, 7);
+      }
+    }
+  }
+
+  drawLeaves(c) {
+    c.save();
+    for (const l of this.leaves) {
+      c.save();
+      c.translate(l.x, l.y);
+      c.rotate(l.spin);
+      c.globalAlpha = 0.85;
+      c.fillStyle = l.color;
+      c.beginPath();
+      c.ellipse(0, 0, l.size, l.size * 0.45, 0, 0, Math.PI * 2);
+      c.fill();
+      c.restore();
+    }
+    c.restore();
+  }
+
+  drawRain(c) {
+    if (this.weather !== 'rain' && this.weather !== 'storm') return;
+    c.save();
+    c.strokeStyle = 'rgba(175,195,235,0.38)';
+    c.lineWidth = 1.4;
+    c.beginPath();
+    for (const d of this.rain) {
+      c.moveTo(d.x, d.y);
+      c.lineTo(d.x - 3, d.y + d.len);
+    }
+    c.stroke();
+    c.strokeStyle = 'rgba(190,210,245,0.45)';
+    for (const s of this.splashes) {
+      c.beginPath();
+      c.arc(s.x, s.y, 1.5 + s.t * 0.9, Math.PI, Math.PI * 2);
+      c.stroke();
+    }
+    c.restore();
+  }
+
+  drawBolt(c) {
+    const L = this.lightning;
+    if (!L || L.boltT <= 0 || !L.bolt) return;
+    c.save();
+    c.globalAlpha = Math.min(1, L.boltT / 6);
+    c.strokeStyle = '#eaf2ff';
+    c.lineWidth = 3.5;
+    c.shadowColor = '#9db9ff';
+    c.shadowBlur = 18;
+    c.beginPath();
+    L.bolt.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
+    c.stroke();
+    c.restore();
+  }
+
+  drawFlash(c) {
+    const L = this.lightning;
+    if (!L || L.flash <= 0) return;
+    c.save();
+    c.globalAlpha = Math.min(0.5, L.flash / 16);
+    c.fillStyle = '#cfe0ff';
+    c.fillRect(0, 0, W, H);
+    c.restore();
   }
 
   startMatch() {
+    this.setWeather(['leaves', 'rain', 'storm'][Math.floor(Math.random() * 3)]);
     this.p1 = new Fighter(CHARACTERS[this.sel1], 250, 1, true);
     this.p2 = new Fighter(CHARACTERS[this.sel2], 710, -1, false);
     this.wins1 = 0; this.wins2 = 0;
@@ -775,6 +926,8 @@ class Game {
     this.stains = [];
     this.hitstop = 0;
     this.shake = 0;
+    this.slowmo = 0;
+    this.zoom = 1;
     this.timeLeft = ROUND_TIME;
     this.timerAcc = 0;
     this.screen = 'intro';
@@ -789,6 +942,7 @@ class Game {
   update() {
     if (!assetsReady()) { keysPressed.clear(); return; }
     this.frame++;
+    this.updateWeather();
     if (keysPressed.has('KeyM')) MUSIC.toggleMute();
     if (audioCtx) {
       const battle = this.screen === 'fight' || this.screen === 'intro' || this.screen === 'roundend';
@@ -940,8 +1094,12 @@ class Game {
 
   updateFight(frozen) {
     if (!this.p1) return;
-    this.updateBlood();
     if (this.hitstop > 0) { this.hitstop--; return; }   // impact freeze
+    if (this.slowmo > 0) {
+      this.slowmo--;
+      if ((this.frame & 1) === 0) return;   // cinematic half speed
+    }
+    this.updateBlood();
     const pad1 = frozen ? { ...EMPTY_PAD } : readPad(P1_KEYS);
     const pad2 = frozen ? { ...EMPTY_PAD }
       : this.vsCpu ? cpuThink(this.p2, this.p1, this) : readPad(P2_KEYS);
@@ -984,7 +1142,9 @@ class Game {
         target.receiveHit(10, 7, false, pr.owner.x, blocked);
         if (blocked) target.hp = Math.max(1, target.hp - 2); // chip damage
         else {
-          this.hitstop = 4;
+          this.hitstop = 7;
+          if (target.hp <= 0) this.slowmo = 110;
+          else this.slowmo = 18;
           this.shake = target.hp <= 0 ? 14 : 7;
           this.spawnBlood(pr.x, pr.y, Math.sign(pr.vx) || 1, target.hp <= 0 ? 55 : 20);
           SFX.specialHit();
@@ -1019,7 +1179,9 @@ class Game {
     defender.receiveHit(def.damage, def.kb, !!def.knockdown, attacker.x, blocked);
     if (blocked && def.chip) defender.hp = Math.max(1, defender.hp - def.chip);
     if (!blocked) {
-      this.hitstop = 6;
+      this.hitstop = def.special ? 12 : 9;
+      if (defender.hp <= 0) this.slowmo = 110;
+      else if (def.special) this.slowmo = 26;
       this.shake = defender.hp <= 0 ? 14 : 8;
       const dir = defender.x >= attacker.x ? 1 : -1;
       let amount = def.damage * 2 + (def.knockdown ? 8 : 0) + (def.special ? 8 : 0);
@@ -1076,6 +1238,8 @@ class Game {
       // gentle vignette for fighter contrast
       c.fillStyle = 'rgba(0,0,10,0.12)';
       c.fillRect(0, 0, W, H);
+      if (this.weather === 'rain') { c.fillStyle = 'rgba(14,22,52,0.28)'; c.fillRect(0, 0, W, H); }
+      if (this.weather === 'storm') { c.fillStyle = 'rgba(10,16,46,0.4)'; c.fillRect(0, 0, W, H); }
     } else {
       c.fillStyle = '#101018';
       c.fillRect(0, 0, W, H);
@@ -1112,7 +1276,7 @@ class Game {
     c.fillText('KO', cx, y + barH / 2 + 7);
 
     // timer below the badge
-    const tstr = String(this.timeLeft).padStart(2, '0');
+    const tstr = String(this.timeLeft == null ? ROUND_TIME : this.timeLeft).padStart(2, '0');
     c.font = 'bold 38px Impact, "Arial Black", sans-serif';
     c.lineWidth = 5;
     c.strokeStyle = '#201000';
@@ -1190,6 +1354,8 @@ class Game {
       this.demoF = [new Fighter(CHARACTERS[0], 260, 1, true), new Fighter(CHARACTERS[1], 700, -1, false)];
     }
     for (const f of this.demoF) { f.stateT++; f.draw(c); }
+    this.drawRain(c);
+    this.drawLeaves(c);
 
     c.fillStyle = 'rgba(0,0,0,0.45)';
     c.fillRect(0, 0, W, H);
@@ -1490,6 +1656,19 @@ class Game {
       this.shake *= 0.85;
       if (this.shake < 0.5) this.shake = 0;
     }
+    // cinematic punch-in during slow motion
+    const targetZoom = this.slowmo > 0 ? 1.22 : 1;
+    this.zoom += (targetZoom - this.zoom) * 0.08;
+    if (this.zoom > 1.004) {
+      const span = (W / 2) * (1 - 1 / this.zoom);
+      const mid = clamp((this.p1.x + this.p2.x) / 2, W / 2 - span, W / 2 + span);
+      this.camX += (mid - this.camX) * 0.1;
+      c.translate(W / 2, 330);
+      c.scale(this.zoom, this.zoom);
+      c.translate(-this.camX, -330);
+    } else {
+      this.camX = W / 2;
+    }
     this.drawStage(c);
     // draw the fighter farther from camera first (the one who is knocked down draws under)
     const order = [this.p1, this.p2];
@@ -1505,9 +1684,21 @@ class Game {
     for (const pr of this.projectiles) pr.draw(c);
     for (const s of this.sparks) s.draw(c);
     this.drawBloodDrops(c);
+    this.drawBolt(c);
+    this.drawRain(c);
+    this.drawLeaves(c);
     this.drawCallout(c, order[0]);
     this.drawCallout(c, order[1]);
     c.restore();
+    this.drawFlash(c);
+    // cinematic letterbox bars
+    const targetBar = this.slowmo > 0 || this.screen === 'roundend' || this.screen === 'matchend' ? 42 : 0;
+    this.letterbox += (targetBar - this.letterbox) * 0.12;
+    if (this.letterbox > 0.5) {
+      c.fillStyle = '#000';
+      c.fillRect(0, 0, W, this.letterbox);
+      c.fillRect(0, H - this.letterbox, W, this.letterbox);
+    }
     this.drawHud(c);
     this.drawAnnounce(c);
 

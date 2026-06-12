@@ -44,6 +44,11 @@ Hits draw blood — sprays scale with damage, knockdowns and KOs gush, and
 stains pool on the arena floor for the rest of the round. Round winners
 perform a victory kata over their fallen opponent.
 
+**Cinematic presentation**: knockouts trigger slow motion with a camera
+punch-in and letterbox bars; special-move hits briefly slow time. Each match
+rolls one of three weather moods — drifting autumn **leaves**, steady **rain**,
+or a full **storm** with lightning bolts and rolling thunder.
+
 ### Special moves
 
 - **Energy wave** (↓ → + Punch) — projectile; waves cancel each other out
