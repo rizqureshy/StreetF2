@@ -19,6 +19,13 @@ const ROUNDS_TO_WIN = 2;
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
+// double-click toggles fullscreen
+if (canvas.addEventListener) canvas.addEventListener('dblclick', () => {
+  const wrap = document.getElementById('wrap') || canvas;
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  else if (wrap.requestFullscreen) wrap.requestFullscreen().catch(() => {});
+});
+
 // ---------------- Audio (tiny WebAudio synth) ----------------
 let audioCtx = null;
 function initAudio() {
