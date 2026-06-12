@@ -1,7 +1,8 @@
-# Street Fighter 2 — JS Edition
+# Swift Sword
 
-A fan-made Street Fighter 2 homage built with HTML5 Canvas and vanilla JavaScript.
-No dependencies, no build step — just open it in a browser and fight.
+A 2D samurai dueling game built with HTML5 Canvas and vanilla JavaScript,
+inspired by classic arcade fighters. No dependencies, no build step — just
+open it in a browser and fight.
 
 ## How to play
 
@@ -109,4 +110,5 @@ Real pixel-art sprite characters with full animation sets
   ([kenney.nl](https://kenney.nl), CC0).
 - Music: "Coy Koi" and "Ancient Rite" from **FreePD.com** (CC0).
 
-*A fan-made homage for educational purposes. Not affiliated with or endorsed by Capcom.*
+*Originally started as a Street Fighter 2 fan homage; now an original game.
+All art, sound, and music are free / CC0-licensed assets credited above.*
