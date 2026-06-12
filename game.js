@@ -39,6 +39,44 @@ function initAudio() {
     try { audioCtx.resume(); } catch (e) { /* not ready yet */ }
   }
 }
+
+// Full iOS unlock ritual. WebKit only counts some gesture types (notably
+// touchend) for audio activation, and the hardware silent switch mutes
+// WebAudio unless an HTML <audio> element switches the session to
+// 'playback'. Safe no-op everywhere else.
+let audioUnlocked = false;
+let silentEl = null;
+function unlockAudio() {
+  initAudio();
+  if (!audioCtx) return;
+  if (audioCtx.state === 'suspended') {
+    try { audioCtx.resume(); } catch (e) { /* retry on next gesture */ }
+  }
+  if (audioUnlocked) return;
+  try {
+    // prime the context with a silent buffer (older iOS requirement)
+    const buf = audioCtx.createBuffer(1, 1, 22050);
+    const s = audioCtx.createBufferSource();
+    s.buffer = buf;
+    s.connect(audioCtx.destination);
+    s.start(0);
+  } catch (e) { /* ignore */ }
+  try {
+    // silent looping <audio> flips the iOS session to 'playback' so the
+    // ringer/silent switch no longer mutes WebAudio
+    silentEl = document.createElement('audio');
+    silentEl.src = 'assets/sfx/silence.mp3';
+    silentEl.loop = true;
+    silentEl.volume = 0.01;
+    const p = silentEl.play();
+    if (p && p.catch) p.catch(() => { audioUnlocked = false; });
+    audioUnlocked = true;
+  } catch (e) { /* ignore */ }
+}
+if (window.addEventListener) {
+  window.addEventListener('pointerdown', unlockAudio);
+  window.addEventListener('touchend', unlockAudio);
+}
 // ---------------- Sampled SFX (Kenney audio packs, CC0) ----------------
 const SAMPLES = {};
 function loadSample(name, url) {
@@ -160,7 +198,7 @@ const MUSIC = {
 const keysDown = {};
 const keysPressed = new Set();
 window.addEventListener('keydown', e => {
-  initAudio();
+  unlockAudio();
   if (!keysDown[e.code]) keysPressed.add(e.code);
   keysDown[e.code] = true;
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
@@ -229,7 +267,7 @@ function touchMenuTap(p) {
 }
 function onTouchStart(e) {
   e.preventDefault();
-  initAudio();
+  unlockAudio();
   TOUCH.enabled = true;
   const g = window.game;
   const fighting = g && (g.screen === 'fight' || g.screen === 'intro' || g.screen === 'roundend');
@@ -258,6 +296,7 @@ function onTouchMove(e) {
 }
 function onTouchEnd(e) {
   e.preventDefault();
+  unlockAudio();
   for (const t of e.changedTouches) {
     if (t.identifier === TOUCH.stickId) {
       TOUCH.stickId = null;
