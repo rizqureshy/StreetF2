@@ -28,18 +28,33 @@ Matches are best of 3 rounds, 99 seconds each. KO your opponent or have more hea
 | Crouch | S | ↓ |
 | Punch | F | K |
 | Kick | G | L |
-| **Hadouken** | ↓ then → + Punch | ↓ then → + Punch |
 | Block | Hold back (away from opponent) | Hold back |
+| Music on/off | M | M |
 
 Menus: **Enter** to confirm, **Esc** to go back.
 
 ## Move list
 
-- **Punch / Kick** — standing strikes
-- **Crouch + Punch** — low jab
+- **Punch / Kick** — sword strikes (hit lands when the blade is visually extended)
+- **Crouch + Punch** — low slash
 - **Crouch + Kick** — sweep (knocks down)
-- **Jump + Punch/Kick** — flying kick
-- **Hadouken** (↓→ + Punch) — fireball projectile; chips through block, fireballs cancel each other out
+- **Jump + Punch/Kick** — aerial slash
+
+### Special moves
+
+- **Energy wave** (↓ → + Punch) — projectile; waves cancel each other out
+  - KAITO: *Tempest Wave* · KENJI: *Phantom Wave*
+- **Dash slash** (↓ → + Kick) — lunging strike with afterimages, knocks down, chips through block
+  - KAITO: *Gale Dash* · KENJI: *Shadow Dash*
+- **Rising slash** (↓ ↓ + Punch) — launching anti-air uppercut, knocks down, chips through block
+  - KAITO: *Dragon Ascent* · KENJI: *Demon Rise*
+
+## Sound
+
+Everything is synthesized live with WebAudio — no audio files. The score is an
+eerie Japanese-style piece built from koto plucks on a hirajoshi pentatonic
+scale, taiko drums, and temple bells; it shifts from a sparse, unsettling menu
+theme to a driving battle rhythm during fights. Press **M** to toggle music.
 
 ## Fighters
 
