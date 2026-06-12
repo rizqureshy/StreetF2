@@ -40,8 +40,9 @@ On touch devices an on-screen layout appears automatically: drag anywhere on
 the left side to move (floating stick — up to jump, down to crouch, hold away
 from your opponent to block) and tap the buttons on the right: **SLASH**,
 **KICK**, plus dedicated **WAVE / DASH / RISE** buttons for the special moves.
-Menus are fully tap-navigable. Double-tap is disabled in favor of smooth play;
-add the page to your home screen for the best fullscreen experience.
+Menus are fully tap-navigable — in 2-player mode, P1 taps a fighter card
+first, then P2 taps theirs. Add the page to your home screen for the best
+fullscreen experience.
 
 ## Move list
 
