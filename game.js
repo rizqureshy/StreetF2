@@ -40,16 +40,146 @@ function beep(freq, dur, type = 'square', vol = 0.12, slide = 0) {
   osc.start(t);
   osc.stop(t + dur);
 }
+let noiseBuffer = null;
+function noiseBuf() {
+  if (!noiseBuffer) {
+    noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate, audioCtx.sampleRate);
+    const d = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  return noiseBuffer;
+}
+function noiseSfx(dur, f0, f1, vol, type = 'bandpass', q = 1.5) {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const n = audioCtx.createBufferSource();
+  n.buffer = noiseBuf();
+  const flt = audioCtx.createBiquadFilter();
+  flt.type = type;
+  flt.Q.value = q;
+  flt.frequency.setValueAtTime(f0, t);
+  flt.frequency.exponentialRampToValueAtTime(Math.max(40, f1), t + dur);
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  n.connect(flt).connect(g).connect(audioCtx.destination);
+  n.start(t);
+  n.stop(t + dur + 0.02);
+}
 const SFX = {
-  hit:      () => { beep(160, 0.12, 'square', 0.18, -80); beep(90, 0.18, 'sawtooth', 0.10, -40); },
-  block:    () => beep(420, 0.07, 'square', 0.10, -100),
-  whiff:    () => beep(300, 0.05, 'triangle', 0.06, 80),
-  fireball: () => { beep(220, 0.30, 'sawtooth', 0.12, 300); },
-  jump:     () => beep(260, 0.10, 'triangle', 0.07, 160),
-  ko:       () => { beep(300, 0.7, 'sawtooth', 0.2, -260); },
+  // metallic sword impact: ring + body thump
+  hit:      () => { noiseSfx(0.09, 3200, 2200, 0.14, 'bandpass', 7); beep(1480, 0.18, 'square', 0.045, -800); beep(74, 0.16, 'sine', 0.26, -28); },
+  block:    () => { noiseSfx(0.06, 1800, 1400, 0.1, 'bandpass', 5); beep(330, 0.08, 'square', 0.07, -90); },
+  whoosh:   () => noiseSfx(0.17, 950, 240, 0.16, 'bandpass', 1.2),
+  fireball: () => { beep(220, 0.32, 'sawtooth', 0.1, 320); noiseSfx(0.3, 400, 1600, 0.08, 'bandpass', 2); },
+  jump:     () => beep(260, 0.1, 'triangle', 0.06, 160),
+  ko:       () => { beep(300, 0.8, 'sawtooth', 0.2, -262); noiseSfx(0.5, 900, 90, 0.16, 'lowpass'); },
   select:   () => beep(700, 0.06, 'square', 0.08),
-  confirm:  () => { beep(520, 0.08, 'square', 0.1); setTimeout(() => beep(780, 0.10, 'square', 0.1), 70); },
-  sweep:    () => beep(120, 0.16, 'sawtooth', 0.14, -60),
+  confirm:  () => { beep(520, 0.08, 'square', 0.1); setTimeout(() => beep(780, 0.1, 'square', 0.1), 70); },
+  sweep:    () => { beep(120, 0.18, 'sawtooth', 0.13, -62); noiseSfx(0.14, 500, 150, 0.1, 'lowpass'); },
+};
+
+// ---------------- Music (procedural eerie Japanese score) ----------------
+let musicGain = null;
+function kotoNote(freq, when, vol = 0.05, decay = 1.4) {
+  const o = audioCtx.createOscillator();
+  o.type = 'triangle';
+  o.frequency.setValueAtTime(freq, when);
+  o.frequency.exponentialRampToValueAtTime(freq * 0.994, when + decay);
+  const flt = audioCtx.createBiquadFilter();
+  flt.type = 'lowpass';
+  flt.frequency.value = 2400;
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(vol, when);
+  g.gain.exponentialRampToValueAtTime(0.0008, when + decay);
+  o.connect(flt).connect(g).connect(musicGain);
+  o.start(when);
+  o.stop(when + decay);
+  // pluck transient
+  const n = audioCtx.createBufferSource();
+  n.buffer = noiseBuf();
+  const nf = audioCtx.createBiquadFilter();
+  nf.type = 'bandpass';
+  nf.frequency.value = Math.min(8000, freq * 2.5);
+  nf.Q.value = 2;
+  const ng = audioCtx.createGain();
+  ng.gain.setValueAtTime(vol * 0.6, when);
+  ng.gain.exponentialRampToValueAtTime(0.0008, when + 0.05);
+  n.connect(nf).connect(ng).connect(musicGain);
+  n.start(when);
+  n.stop(when + 0.06);
+}
+function taiko(when, vol = 0.16) {
+  const o = audioCtx.createOscillator();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(95, when);
+  o.frequency.exponentialRampToValueAtTime(42, when + 0.22);
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(vol, when);
+  g.gain.exponentialRampToValueAtTime(0.001, when + 0.28);
+  o.connect(g).connect(musicGain);
+  o.start(when);
+  o.stop(when + 0.3);
+}
+function templeBell(freq, when, vol = 0.03) {
+  for (const [m, v] of [[1, vol], [2.76, vol * 0.4], [5.4, vol * 0.14]]) {
+    const o = audioCtx.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = freq * m;
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(v, when);
+    g.gain.exponentialRampToValueAtTime(0.0006, when + 2.6);
+    o.connect(g).connect(musicGain);
+    o.start(when);
+    o.stop(when + 2.7);
+  }
+}
+// hirajoshi pentatonic on A — the minor seconds give it the eerie shrine feel
+const SCALE_LOW = [110, 116.54, 130.81, 164.81, 174.61];
+const SCALE_MID = [220, 233.08, 261.63, 329.63, 349.23, 440, 466.16];
+const MUSIC = {
+  mode: null, step: 0, nextT: 0, timer: null, muted: false,
+  ensure(mode) {
+    if (!audioCtx) return;
+    if (!musicGain) {
+      musicGain = audioCtx.createGain();
+      musicGain.gain.value = this.muted ? 0 : 0.9;
+      musicGain.connect(audioCtx.destination);
+    }
+    this.mode = mode;
+    if (!this.timer) {
+      this.nextT = audioCtx.currentTime + 0.1;
+      this.timer = setInterval(() => this.tick(), 90);
+    }
+  },
+  toggleMute() {
+    this.muted = !this.muted;
+    if (musicGain) musicGain.gain.value = this.muted ? 0 : 0.9;
+  },
+  tick() {
+    const stepDur = this.mode === 'battle' ? 0.165 : 0.24;
+    while (this.nextT < audioCtx.currentTime + 0.35) {
+      this.schedule(this.nextT);
+      this.nextT += stepDur;
+      this.step++;
+    }
+  },
+  schedule(t) {
+    const s = this.step % 32;
+    const rnd = Math.abs(Math.sin(this.step * 12.9898) * 43758.5453) % 1;
+    if (this.mode === 'battle') {
+      if (s % 8 === 0) taiko(t, 0.17);
+      if (s % 8 === 3) taiko(t, 0.07);
+      if (s % 16 === 10) taiko(t, 0.12);
+      if (rnd < 0.42) kotoNote(SCALE_MID[Math.floor(rnd * 100) % SCALE_MID.length], t, 0.042, 0.9);
+      if (s === 24) templeBell(880, t, 0.018);
+    } else {
+      if (rnd < 0.22) kotoNote(SCALE_LOW[Math.floor(rnd * 100) % SCALE_LOW.length], t, 0.05, 2.2);
+      if (rnd > 0.93) kotoNote(SCALE_MID[Math.floor(rnd * 100) % SCALE_MID.length], t + 0.05, 0.028, 1.6);
+      if (s === 0 && rnd < 0.5) taiko(t, 0.055);
+      if (s === 20 && rnd > 0.4) templeBell(440, t, 0.03);
+    }
+  },
 };
 
 // ---------------- Input ----------------
@@ -75,9 +205,11 @@ function readPad(map) {
     punch: keysPressed.has(map.punch),
     kick: keysPressed.has(map.kick),
     hadouken: false,
+    dashSlash: false,
+    rising: false,
   };
 }
-const EMPTY_PAD = { left: false, right: false, up: false, down: false, punch: false, kick: false, hadouken: false };
+const EMPTY_PAD = { left: false, right: false, up: false, down: false, punch: false, kick: false, hadouken: false, dashSlash: false, rising: false };
 
 // ---------------- Characters ----------------
 // Sprite art: "Martial Hero" 1 & 2 by LuizMelo (https://luizmelo.itch.io) — free for any use.
@@ -87,6 +219,9 @@ const CHARACTERS = [
     id: 'kaito', name: 'KAITO', dir: 'assets/p1', baseFacing: 1,
     scale: 3.4, footY: 121, cx: 94,
     frames: { Idle: 8, Run: 8, Jump: 2, Fall: 2, Attack1: 6, Attack2: 6, TakeHit: 4, Death: 6 },
+    // fraction of the attack during which the blade is visually extended
+    swing: { Attack1: [0.62, 0.88], Attack2: [0.62, 0.88] },
+    moves: { hadouken: 'TEMPEST WAVE', dashSlash: 'GALE DASH', risingSlash: 'DRAGON ASCENT' },
     fireball: '#58b4ff',
     taunt: 'MY BLADE NEVER WAVERS!',
   },
@@ -94,6 +229,8 @@ const CHARACTERS = [
     id: 'kenji', name: 'KENJI', dir: 'assets/p2', baseFacing: -1,
     scale: 3.3, footY: 127, cx: 102,
     frames: { Idle: 4, Run: 8, Jump: 2, Fall: 2, Attack1: 4, Attack2: 4, TakeHit: 3, Death: 7 },
+    swing: { Attack1: [0.26, 0.55], Attack2: [0.26, 0.55] },
+    moves: { hadouken: 'PHANTOM WAVE', dashSlash: 'SHADOW DASH', risingSlash: 'DEMON RISE' },
     fireball: '#c44dff',
     taunt: 'YOU WERE NEVER A MATCH!',
   },
@@ -122,16 +259,21 @@ const assetsReady = () => assetsLoaded >= assetsTotal;
 // Frame data: startup, active, recovery (in 60fps frames).
 // Hitboxes are in screen pixels relative to fighter origin (feet center), facing +x.
 // Ranges account for the sprite characters' sword reach.
+// Boxes match the measured pixel extents of the sword swings.
+// startup/active/recovery are re-windowed per character so the hit
+// lands exactly when that fighter's blade is visually extended.
 const ATTACKS = {
-  punch:       { startup: 5, active: 6, recovery: 10, damage: 6, kb: 4.5, box: { x: 25, y: -155, w: 145, h: 85 } },
-  kick:        { startup: 7, active: 6, recovery: 14, damage: 8, kb: 6,   box: { x: 25, y: -135, w: 155, h: 95 } },
-  crouchPunch: { startup: 4, active: 5, recovery: 9,  damage: 5, kb: 3.5, box: { x: 18, y: -105, w: 120, h: 65 }, crouch: true },
-  sweep:       { startup: 7, active: 6, recovery: 16, damage: 7, kb: 4,   box: { x: 15, y: -45,  w: 135, h: 45 }, crouch: true, knockdown: true },
-  jumpKick:    { startup: 5, active: 12, recovery: 6, damage: 9, kb: 6,   box: { x: 5,  y: -115, w: 125, h: 85 }, air: true },
-  hadouken:    { startup: 13, active: 1, recovery: 18, damage: 0, kb: 0,  box: null, projectile: true },
+  punch:       { startup: 9,  active: 7,  recovery: 14, damage: 7,  kb: 5,   box: { x: 25, y: -215, w: 275, h: 190 }, anim: 'Attack1' },
+  kick:        { startup: 11, active: 7,  recovery: 16, damage: 9,  kb: 6.5, box: { x: 25, y: -195, w: 285, h: 175 }, anim: 'Attack2' },
+  crouchPunch: { startup: 7,  active: 6,  recovery: 11, damage: 5,  kb: 4,   box: { x: 20, y: -170, w: 250, h: 150 }, anim: 'Attack1', crouch: true },
+  sweep:       { startup: 9,  active: 7,  recovery: 16, damage: 7,  kb: 4,   box: { x: 15, y: -65,  w: 235, h: 65 },  anim: 'Attack2', crouch: true, knockdown: true },
+  jumpKick:    { startup: 6,  active: 12, recovery: 8,  damage: 9,  kb: 6,   box: { x: 0,  y: -150, w: 230, h: 130 }, anim: 'Attack2', air: true },
+  hadouken:    { startup: 16, active: 1,  recovery: 22, damage: 0,  kb: 0,   box: null, anim: 'Attack1', projectile: true, special: true },
+  dashSlash:   { startup: 10, active: 12, recovery: 14, damage: 10, kb: 7,   box: { x: 10, y: -195, w: 290, h: 175 }, anim: 'Attack2', knockdown: true, dash: 8, chip: 2, special: true },
+  risingSlash: { startup: 8,  active: 14, recovery: 18, damage: 11, kb: 6,   box: { x: -25, y: -290, w: 230, h: 270 }, anim: 'Attack1', knockdown: true, rising: true, chip: 2, special: true },
 };
-const HITSTUN = 18;
-const BLOCKSTUN = 12;
+const HITSTUN = 20;
+const BLOCKSTUN = 14;
 
 // ---------------- Helpers ----------------
 function rectsOverlap(a, b) {
@@ -211,6 +353,11 @@ class Fighter {
     this.walkPhase = 0;
     this.qcfStage = 0;     // quarter-circle-forward detector
     this.qcfTimer = 0;
+    this.ddStage = 0;      // double-tap-down detector
+    this.ddTimer = 0;
+    this.prevDown = false;
+    this.ghosts = [];      // afterimages for special moves
+    this.callout = null;   // floating special-move name
     this.proj = null;
     this.downTimer = 0;
     this.controllable = false;
@@ -230,17 +377,33 @@ class Fighter {
   attackBox() {
     if (!this.attack || this.attack.def.projectile) return null;
     const a = this.attack;
-    if (a.t < a.def.startup || a.t >= a.def.startup + a.def.active) return null;
+    if (a.t < a.st || a.t >= a.st + a.act) return null;
     const b = a.def.box;
     const bx = this.facing === 1 ? this.x + b.x : this.x - b.x - b.w;
     return { x: bx, y: this.y + b.y, w: b.w, h: b.h };
   }
 
   startAttack(name) {
-    this.attack = { name, def: ATTACKS[name], t: 0, hasHit: false };
+    const def = ATTACKS[name];
+    let st = def.startup, act = def.active, rec = def.recovery;
+    // Re-window the active frames to when this character's blade is
+    // visually extended in the mapped animation strip.
+    const win = !def.projectile && !def.dash && !def.rising &&
+      this.char.swing && this.char.swing[def.anim];
+    if (win) {
+      const T = st + act + rec;
+      st = Math.round(T * win[0]);
+      act = Math.max(2, Math.round(T * (win[1] - win[0])));
+      rec = Math.max(0, T - st - act);
+    }
+    this.attack = { name, def, t: 0, hasHit: false, st, act, total: st + act + rec };
     this.state = 'attack';
     this.stateT = 0;
-    if (name === 'hadouken') SFX.fireball();
+    if (def.special && this.char.moves) {
+      this.callout = { text: this.char.moves[name] || name.toUpperCase(), t: 0 };
+    }
+    if (def.projectile) SFX.fireball();
+    else SFX.whoosh();
   }
 
   update(pad, opp, game) {
@@ -248,10 +411,23 @@ class Fighter {
     const fwd = this.facing === 1 ? pad.right : pad.left;
     const back = this.facing === 1 ? pad.left : pad.right;
 
-    // --- quarter-circle-forward detection for Hadouken ---
+    // --- quarter-circle-forward detection (energy wave / dash slash) ---
     if (this.qcfTimer > 0) this.qcfTimer--; else this.qcfStage = 0;
     if (pad.down && !fwd) { this.qcfStage = 1; this.qcfTimer = 26; }
     else if (this.qcfStage >= 1 && fwd) { this.qcfStage = 2; this.qcfTimer = 14; }
+
+    // --- double-tap-down detection (rising slash) ---
+    const downEdge = pad.down && !this.prevDown;
+    this.prevDown = pad.down;
+    if (this.ddTimer > 0) this.ddTimer--; else this.ddStage = 0;
+    if (downEdge) {
+      if (this.ddStage === 1) { this.ddStage = 2; this.ddTimer = 14; }
+      else { this.ddStage = 1; this.ddTimer = 20; }
+    }
+
+    // --- afterimage / callout housekeeping ---
+    this.ghosts = this.ghosts.filter(g => ++g.t < 14);
+    if (this.callout && ++this.callout.t > 55) this.callout = null;
 
     // --- physics ---
     if (!this.grounded || this.vy < 0) {
@@ -298,13 +474,28 @@ class Fighter {
     if (this.attack) {
       const a = this.attack;
       a.t++;
-      if (a.def.projectile && a.t === a.def.startup && !this.projAlive(game)) {
+      if (a.def.projectile && a.t === a.st && !this.projAlive(game)) {
         game.projectiles.push(new Projectile(this));
       }
-      const total = a.def.startup + a.def.active + a.def.recovery;
+      if (a.def.dash && a.t >= a.st - 4 && a.t < a.st + a.act) {
+        this.x += this.facing * a.def.dash;
+        this.clampX();
+      }
+      if (a.def.rising && a.t === Math.max(1, a.st - 2)) {
+        this.vy = -15;
+        this.vx = this.facing * 3;
+        this.y -= 2;
+      }
+      if ((a.def.dash || a.def.rising) && a.t % 3 === 0) {
+        const spr = this.currentSprite();
+        this.ghosts.push({
+          img: spr.img, frame: spr.frame, x: this.x, y: this.y,
+          flip: this.facing * this.char.baseFacing, t: 0,
+        });
+      }
       if (a.def.air) {
         if (this.grounded) { this.attack = null; this.state = 'idle'; }
-      } else if (a.t >= total) {
+      } else if (a.t >= a.total) {
         this.attack = null;
         this.state = this.grounded ? 'idle' : 'jump';
       }
@@ -330,15 +521,24 @@ class Fighter {
     // --- grounded actions ---
     if (this.attack) return;
 
-    // special move
-    const wantHadouken = pad.hadouken || (pad.punch && this.qcfStage === 2);
-    if (wantHadouken && !this.projAlive(game)) {
+    // special moves (checked before normals)
+    if ((pad.hadouken || (pad.punch && this.qcfStage === 2)) && !this.projAlive(game)) {
       this.startAttack('hadouken');
       this.qcfStage = 0;
       return;
     }
-    if (pad.punch) { this.startAttack(pad.down ? 'crouchPunch' : 'punch'); SFX.whiff(); return; }
-    if (pad.kick)  { this.startAttack(pad.down ? 'sweep' : 'kick'); SFX.whiff(); return; }
+    if (pad.rising || (pad.punch && this.ddStage === 2)) {
+      this.startAttack('risingSlash');
+      this.ddStage = 0;
+      return;
+    }
+    if (pad.dashSlash || (pad.kick && this.qcfStage === 2)) {
+      this.startAttack('dashSlash');
+      this.qcfStage = 0;
+      return;
+    }
+    if (pad.punch) { this.startAttack(pad.down ? 'crouchPunch' : 'punch'); return; }
+    if (pad.kick)  { this.startAttack(pad.down ? 'sweep' : 'kick'); return; }
 
     if (pad.up) {
       this.vy = JUMP_VY;
@@ -423,7 +623,7 @@ class Fighter {
     let key = 'Idle', frame = 0;
     if (this.state === 'ko' || this.state === 'down') {
       key = 'Death';
-      frame = Math.min(n(key) - 1, Math.floor(this.stateT / 5));
+      frame = Math.min(n(key) - 1, Math.floor(this.stateT / 6));
     } else if (this.state === 'hit') {
       key = 'TakeHit';
       frame = Math.min(n(key) - 1, Math.floor(this.stateT / 5));
@@ -431,11 +631,8 @@ class Fighter {
       key = 'TakeHit';
       frame = 0;
     } else if (this.attack) {
-      key = (this.attack.name === 'kick' || this.attack.name === 'sweep' || this.attack.name === 'jumpKick')
-        ? 'Attack2' : 'Attack1';
-      const d = this.attack.def;
-      const total = d.air ? 26 : d.startup + d.active + d.recovery;
-      frame = Math.min(n(key) - 1, Math.floor(this.attack.t / total * n(key)));
+      key = this.attack.def.anim || 'Attack1';
+      frame = Math.min(n(key) - 1, Math.floor(this.attack.t / this.attack.total * n(key)));
     } else if (!this.grounded) {
       key = this.vy < 0 ? 'Jump' : 'Fall';
       frame = Math.min(n(key) - 1, Math.floor(this.stateT / 9));
@@ -444,7 +641,7 @@ class Fighter {
       frame = Math.floor(Math.abs(this.walkPhase) * 1.1) % n(key);
     } else {
       key = 'Idle';
-      frame = Math.floor(this.stateT / 7) % n(key);
+      frame = Math.floor(this.stateT / 8) % n(key);
     }
     return { img: SHEETS[ch.id][key], frame };
   }
@@ -479,7 +676,7 @@ class Fighter {
 // ---------------- CPU AI ----------------
 function cpuThink(f, opp, game) {
   const ai = f.ai;
-  const pad = { left: false, right: false, up: false, down: false, punch: false, kick: false, hadouken: false };
+  const pad = { left: false, right: false, up: false, down: false, punch: false, kick: false, hadouken: false, dashSlash: false, rising: false };
   if (!f.controllable || f.state === 'down' || f.state === 'ko') return pad;
 
   const dist = Math.abs(opp.x - f.x);
@@ -505,6 +702,12 @@ function cpuThink(f, opp, game) {
     return pad;
   }
 
+  // anti-air: rising slash under a jump-in
+  if (!opp.grounded && dist < 230 && f.grounded && !f.attack && Math.random() < 0.06) {
+    pad.rising = true;
+    return pad;
+  }
+
   if (ai.timer > 0) {
     ai.timer--;
   } else {
@@ -515,9 +718,10 @@ function cpuThink(f, opp, game) {
       else if (r < 0.55) { ai.move = 'jumpin'; ai.timer = 30; }
       else { ai.move = 'approach'; ai.timer = 24; }
     } else if (dist > 210) {
-      if (r < 0.45) { ai.move = 'approach'; ai.timer = 18; }
-      else if (r < 0.65) { ai.move = 'jumpin'; ai.timer = 30; }
-      else if (r < 0.8 && !f.projAlive(game)) { ai.move = 'fireball'; ai.timer = 8; }
+      if (r < 0.4) { ai.move = 'approach'; ai.timer = 18; }
+      else if (r < 0.55) { ai.move = 'dash'; ai.timer = 10; }
+      else if (r < 0.7) { ai.move = 'jumpin'; ai.timer = 30; }
+      else if (r < 0.85 && !f.projAlive(game)) { ai.move = 'fireball'; ai.timer = 8; }
       else { ai.move = 'wait'; ai.timer = 14; }
     } else {
       if (r < 0.3) { ai.move = 'punch'; ai.timer = 10; }
@@ -538,6 +742,7 @@ function cpuThink(f, opp, game) {
       else pad[fwdKey] = true;
       break;
     case 'fireball': if (ai.fresh) pad.hadouken = true; break;
+    case 'dash': if (ai.fresh) pad.dashSlash = true; break;
     case 'punch': if (ai.fresh) pad.punch = true; break;
     case 'kick': if (ai.fresh) pad.kick = true; break;
     case 'sweep': if (ai.fresh) { pad.down = true; pad.kick = true; } break;
@@ -611,6 +816,11 @@ class Game {
   update() {
     if (!assetsReady()) { keysPressed.clear(); return; }
     this.frame++;
+    if (keysPressed.has('KeyM')) MUSIC.toggleMute();
+    if (audioCtx) {
+      const battle = this.screen === 'fight' || this.screen === 'intro' || this.screen === 'roundend';
+      MUSIC.ensure(battle ? 'battle' : 'calm');
+    }
     this.screenT = (this.screenT || 0) + 1;
 
     switch (this.screen) {
@@ -778,6 +988,7 @@ class Game {
     const sparkY = hb.y + hb.h / 2;
     this.sparks.push(new HitSpark(sparkX, sparkY, blocked));
     defender.receiveHit(def.damage, def.kb, !!def.knockdown, attacker.x, blocked);
+    if (blocked && def.chip) defender.hp = Math.max(1, defender.hp - def.chip);
     if (!blocked) {
       this.hitstop = 6;
       this.shake = defender.hp <= 0 ? 14 : 8;
@@ -1052,6 +1263,59 @@ class Game {
     c.fillText(this.vsCpu ? 'P2: CPU' : 'P2: ←/→ move — K confirm', W / 2 + 240, 470);
   }
 
+  drawGhosts(c, f) {
+    const ch = f.char;
+    for (const g of f.ghosts) {
+      if (!g.img || !g.img.complete) continue;
+      c.save();
+      c.globalAlpha = 0.3 * (1 - g.t / 14);
+      c.translate(g.x, g.y);
+      c.scale(g.flip, 1);
+      c.drawImage(g.img, g.frame * 200, 0, 200, 200,
+        -ch.cx * ch.scale, -ch.footY * ch.scale, 200 * ch.scale, 200 * ch.scale);
+      c.restore();
+    }
+  }
+
+  // white streak sweeping with the blade during active frames
+  drawSlashTrail(c, f) {
+    const a = f.attack;
+    if (!a || !a.def.box || a.def.projectile) return;
+    const p = (a.t - a.st) / a.act;
+    if (p < 0 || p > 1) return;
+    const reach = (a.def.box.x + a.def.box.w) * 0.42;
+    c.save();
+    c.translate(f.x, f.y - 100);
+    c.scale(f.facing, 1);
+    c.lineCap = 'round';
+    c.strokeStyle = '#ffffff';
+    for (let i = 0; i < 2; i++) {
+      const pp = Math.max(0, p - i * 0.15);
+      if (pp <= 0.05) continue;
+      c.globalAlpha = Math.max(0, (0.22 - i * 0.09) * (1 - p * 0.7));
+      c.lineWidth = 7 - i * 3;
+      c.beginPath();
+      c.arc(0, 0, reach, -1.4 + 1.9 * Math.max(0, pp - 0.35), -1.4 + 1.9 * pp);
+      c.stroke();
+    }
+    c.restore();
+  }
+
+  drawCallout(c, f) {
+    if (!f.callout) return;
+    c.save();
+    c.globalAlpha = Math.max(0, 1 - f.callout.t / 55);
+    c.font = 'bold 20px "Courier New", monospace';
+    c.textAlign = 'center';
+    c.lineWidth = 4;
+    c.strokeStyle = '#140826';
+    const y = f.y - 215 - f.callout.t * 0.6;
+    c.strokeText(f.callout.text, f.x, y);
+    c.fillStyle = f.char.fireball;
+    c.fillText(f.callout.text, f.x, y);
+    c.restore();
+  }
+
   drawFightScreen(c) {
     c.save();
     if (this.shake > 0) {   // screen shake on heavy hits
@@ -1064,10 +1328,16 @@ class Game {
     const order = [this.p1, this.p2];
     if (this.p1.state === 'down' || this.p1.state === 'ko') { /* p1 first by default */ }
     else if (this.p2.state === 'down' || this.p2.state === 'ko') order.reverse();
+    this.drawGhosts(c, order[0]);
+    this.drawGhosts(c, order[1]);
     order[0].draw(c);
     order[1].draw(c);
+    this.drawSlashTrail(c, order[0]);
+    this.drawSlashTrail(c, order[1]);
     for (const pr of this.projectiles) pr.draw(c);
     for (const s of this.sparks) s.draw(c);
+    this.drawCallout(c, order[0]);
+    this.drawCallout(c, order[1]);
     c.restore();
     this.drawHud(c);
     this.drawAnnounce(c);
@@ -1076,7 +1346,7 @@ class Game {
       c.font = 'bold 18px "Courier New", monospace';
       c.textAlign = 'center';
       c.fillStyle = 'rgba(255,255,255,0.75)';
-      c.fillText('P1: WASD move · F punch · G kick · ↓→+F Hadouken · hold back to block', W / 2, H - 14);
+      c.fillText('F/G attack · ↓→+F wave · ↓→+G dash slash · ↓↓+F rising slash · back=block · M=music', W / 2, H - 14);
     }
   }
 
