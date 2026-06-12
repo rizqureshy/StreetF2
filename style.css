@@ -23,4 +23,5 @@ html, body {
   image-rendering: crisp-edges;
   background: #000;
   cursor: pointer;
+  touch-action: none;
 }
