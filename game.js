@@ -34,6 +34,10 @@ function initAudio() {
     try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { /* no audio */ }
     if (audioCtx) decodeAllSamples();
   }
+  // mobile browsers create the context suspended until a user gesture
+  if (audioCtx && audioCtx.state === 'suspended') {
+    try { audioCtx.resume(); } catch (e) { /* not ready yet */ }
+  }
 }
 // ---------------- Sampled SFX (Kenney audio packs, CC0) ----------------
 const SAMPLES = {};
@@ -72,26 +76,26 @@ function playSample(names, vol = 1, rateJitter = 0.05, baseRate = 1) {
   return true;
 }
 const SFX_FILES = {
-  slice1: 'assets/sfx/knife_slice.ogg', slice2: 'assets/sfx/knife_slice_2.ogg',
-  swing1: 'assets/sfx/draw_knife_1.ogg', swing2: 'assets/sfx/draw_knife_2.ogg', swing3: 'assets/sfx/draw_knife_3.ogg',
-  punchH1: 'assets/sfx/impact_punch_heavy_000.ogg', punchH2: 'assets/sfx/impact_punch_heavy_001.ogg', punchH3: 'assets/sfx/impact_punch_heavy_002.ogg',
-  punchM1: 'assets/sfx/impact_punch_medium_000.ogg', punchM2: 'assets/sfx/impact_punch_medium_001.ogg',
-  chop: 'assets/sfx/chop.ogg',
-  metal1: 'assets/sfx/impact_metal_light_000.ogg', metal2: 'assets/sfx/impact_metal_light_001.ogg', metal3: 'assets/sfx/impact_metal_medium_000.ogg',
-  body1: 'assets/sfx/impact_soft_heavy_000.ogg', body2: 'assets/sfx/impact_soft_heavy_001.ogg',
-  floor: 'assets/sfx/impact_wood_heavy_000.ogg',
-  gong: 'assets/sfx/impact_bell_heavy_000.ogg',
-  land1: 'assets/sfx/footstep_wood_000.ogg', land2: 'assets/sfx/footstep_wood_001.ogg',
-  cloth1: 'assets/sfx/cloth_1.ogg', cloth2: 'assets/sfx/cloth_3.ogg',
-  click1: 'assets/sfx/click1.wav', click2: 'assets/sfx/click3.wav',
-  vo_ready: 'assets/vo/ready.ogg', vo_go: 'assets/vo/go.ogg',
-  vo_round: 'assets/vo/round.ogg', vo_final_round: 'assets/vo/final_round.ogg',
-  vo_you_win: 'assets/vo/you_win.ogg', vo_you_lose: 'assets/vo/you_lose.ogg',
-  vo_time_over: 'assets/vo/time_over.ogg', vo_hurry: 'assets/vo/hurry_up.ogg',
-  vo_tie: 'assets/vo/its_a_tie.ogg', vo_congrats: 'assets/vo/congratulations.ogg',
-  laser1: 'assets/sfx/laser_large_000.ogg', laser2: 'assets/sfx/laser_large_001.ogg',
-  force1: 'assets/sfx/force_field_000.ogg', force2: 'assets/sfx/force_field_001.ogg', force3: 'assets/sfx/force_field_002.ogg',
-  expl1: 'assets/sfx/explosion_crunch_000.ogg', expl2: 'assets/sfx/explosion_crunch_001.ogg', expl3: 'assets/sfx/explosion_crunch_002.ogg',
+  slice1: 'assets/sfx/knife_slice.mp3', slice2: 'assets/sfx/knife_slice_2.mp3',
+  swing1: 'assets/sfx/draw_knife_1.mp3', swing2: 'assets/sfx/draw_knife_2.mp3', swing3: 'assets/sfx/draw_knife_3.mp3',
+  punchH1: 'assets/sfx/impact_punch_heavy_000.mp3', punchH2: 'assets/sfx/impact_punch_heavy_001.mp3', punchH3: 'assets/sfx/impact_punch_heavy_002.mp3',
+  punchM1: 'assets/sfx/impact_punch_medium_000.mp3', punchM2: 'assets/sfx/impact_punch_medium_001.mp3',
+  chop: 'assets/sfx/chop.mp3',
+  metal1: 'assets/sfx/impact_metal_light_000.mp3', metal2: 'assets/sfx/impact_metal_light_001.mp3', metal3: 'assets/sfx/impact_metal_medium_000.mp3',
+  body1: 'assets/sfx/impact_soft_heavy_000.mp3', body2: 'assets/sfx/impact_soft_heavy_001.mp3',
+  floor: 'assets/sfx/impact_wood_heavy_000.mp3',
+  gong: 'assets/sfx/impact_bell_heavy_000.mp3',
+  land1: 'assets/sfx/footstep_wood_000.mp3', land2: 'assets/sfx/footstep_wood_001.mp3',
+  cloth1: 'assets/sfx/cloth_1.mp3', cloth2: 'assets/sfx/cloth_3.mp3',
+  click1: 'assets/sfx/click1.mp3', click2: 'assets/sfx/click3.mp3',
+  vo_ready: 'assets/vo/ready.mp3', vo_go: 'assets/vo/go.mp3',
+  vo_round: 'assets/vo/round.mp3', vo_final_round: 'assets/vo/final_round.mp3',
+  vo_you_win: 'assets/vo/you_win.mp3', vo_you_lose: 'assets/vo/you_lose.mp3',
+  vo_time_over: 'assets/vo/time_over.mp3', vo_hurry: 'assets/vo/hurry_up.mp3',
+  vo_tie: 'assets/vo/its_a_tie.mp3', vo_congrats: 'assets/vo/congratulations.mp3',
+  laser1: 'assets/sfx/laser_large_000.mp3', laser2: 'assets/sfx/laser_large_001.mp3',
+  force1: 'assets/sfx/force_field_000.mp3', force2: 'assets/sfx/force_field_001.mp3', force3: 'assets/sfx/force_field_002.mp3',
+  expl1: 'assets/sfx/explosion_crunch_000.mp3', expl2: 'assets/sfx/explosion_crunch_001.mp3', expl3: 'assets/sfx/explosion_crunch_002.mp3',
   music_calm: 'assets/music/menu.mp3', music_battle: 'assets/music/battle.mp3',
 };
 for (const [n, u] of Object.entries(SFX_FILES)) loadSample(n, u);
@@ -204,12 +208,15 @@ function touchMenuTap(p) {
       keysPressed.add('Enter');
       break;
     case 'select':
-      if (!g.done1) {
-        for (let i = 0; i < CHARACTERS.length; i++) {
-          const cx = W / 2 + (i - (CHARACTERS.length - 1) / 2) * 230;
-          if (Math.abs(p.x - cx) < 110 && p.y > 140 && p.y < 410) {
+      for (let i = 0; i < CHARACTERS.length; i++) {
+        const cx = W / 2 + (i - (CHARACTERS.length - 1) / 2) * 230;
+        if (Math.abs(p.x - cx) < 110 && p.y > 140 && p.y < 410) {
+          if (!g.done1) {
             g.sel1 = i;
             keysPressed.add('KeyF');
+          } else if (!g.vsCpu && !g.done2) {
+            g.sel2 = i;
+            keysPressed.add('KeyK');
           }
         }
       }
@@ -1594,7 +1601,8 @@ class Game {
     c.fillStyle = '#7ab0ff';
     c.fillText('P1: A/D move — F confirm', W / 2 - 240, 470);
     c.fillStyle = '#ff8a7a';
-    c.fillText(this.vsCpu ? 'P2: CPU' : 'P2: ←/→ move — K confirm', W / 2 + 240, 470);
+    c.fillText(this.vsCpu ? 'P2: CPU'
+      : TOUCH.enabled ? 'P2: tap a card' : 'P2: ←/→ move — K confirm', W / 2 + 240, 470);
   }
 
   spawnBlood(x, y, dir, n) {
