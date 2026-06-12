@@ -163,6 +163,120 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => { keysDown[e.code] = false; });
 
+// ---------------- Touch controls (mobile) ----------------
+const TOUCH = {
+  enabled: typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches,
+  dir: { left: false, right: false, up: false, down: false },
+  queue: new Set(),       // edge-triggered button presses for the next tick
+  held: {},               // touchId -> button id
+  stickId: null,
+  stickOrigin: null,      // floating stick: where the finger landed
+  stickPos: null,
+};
+const TOUCH_BUTTONS = [
+  { id: 'punch',     label: 'SLASH', x: W - 90,  y: H - 78,  r: 46, color: '#c83030' },
+  { id: 'kick',      label: 'KICK',  x: W - 196, y: H - 110, r: 46, color: '#3060c8' },
+  { id: 'hadouken',  label: 'WAVE',  x: W - 78,  y: H - 188, r: 33, color: '#9040c0' },
+  { id: 'dashSlash', label: 'DASH',  x: W - 162, y: H - 218, r: 33, color: '#c07818' },
+  { id: 'rising',    label: 'RISE',  x: W - 252, y: H - 222, r: 33, color: '#1f9e60' },
+];
+function touchCanvasPos(t) {
+  const r = canvas.getBoundingClientRect();
+  return { x: (t.clientX - r.left) * (W / r.width), y: (t.clientY - r.top) * (H / r.height) };
+}
+function touchUpdateStick(p) {
+  const o = TOUCH.stickOrigin;
+  if (!o) return;
+  TOUCH.stickPos = p;
+  const dx = p.x - o.x, dy = p.y - o.y;
+  TOUCH.dir.left = dx < -16;
+  TOUCH.dir.right = dx > 16;
+  TOUCH.dir.up = dy < -30;
+  TOUCH.dir.down = dy > 26;
+}
+function touchMenuTap(p) {
+  const g = window.game;
+  if (!g) return;
+  switch (g.screen) {
+    case 'title': keysPressed.add('Enter'); break;
+    case 'mode':
+      g.modeIdx = p.y < 290 ? 0 : 1;
+      keysPressed.add('Enter');
+      break;
+    case 'select':
+      if (!g.done1) {
+        for (let i = 0; i < CHARACTERS.length; i++) {
+          const cx = W / 2 + (i - (CHARACTERS.length - 1) / 2) * 230;
+          if (Math.abs(p.x - cx) < 110 && p.y > 140 && p.y < 410) {
+            g.sel1 = i;
+            keysPressed.add('KeyF');
+          }
+        }
+      }
+      break;
+    case 'versus':
+    case 'matchend':
+      keysPressed.add('Enter');
+      break;
+  }
+}
+function onTouchStart(e) {
+  e.preventDefault();
+  initAudio();
+  TOUCH.enabled = true;
+  const g = window.game;
+  const fighting = g && (g.screen === 'fight' || g.screen === 'intro' || g.screen === 'roundend');
+  for (const t of e.changedTouches) {
+    const p = touchCanvasPos(t);
+    if (!fighting) { touchMenuTap(p); continue; }
+    let hit = null;
+    for (const b of TOUCH_BUTTONS) {
+      if ((p.x - b.x) ** 2 + (p.y - b.y) ** 2 < (b.r + 12) ** 2) { hit = b; break; }
+    }
+    if (hit) {
+      TOUCH.queue.add(hit.id);
+      TOUCH.held[t.identifier] = hit.id;
+    } else if (p.x < W * 0.45 && TOUCH.stickId === null) {
+      TOUCH.stickId = t.identifier;
+      TOUCH.stickOrigin = p;
+      touchUpdateStick(p);
+    }
+  }
+}
+function onTouchMove(e) {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (t.identifier === TOUCH.stickId) touchUpdateStick(touchCanvasPos(t));
+  }
+}
+function onTouchEnd(e) {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (t.identifier === TOUCH.stickId) {
+      TOUCH.stickId = null;
+      TOUCH.stickOrigin = null;
+      TOUCH.stickPos = null;
+      TOUCH.dir.left = TOUCH.dir.right = TOUCH.dir.up = TOUCH.dir.down = false;
+    }
+    delete TOUCH.held[t.identifier];
+  }
+}
+if (canvas.addEventListener) {
+  canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+  canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+  canvas.addEventListener('touchend', onTouchEnd, { passive: false });
+  canvas.addEventListener('touchcancel', onTouchEnd, { passive: false });
+}
+function mergeTouchPad(pad) {
+  if (!TOUCH.enabled) return pad;
+  pad.left = pad.left || TOUCH.dir.left;
+  pad.right = pad.right || TOUCH.dir.right;
+  pad.up = pad.up || TOUCH.dir.up;
+  pad.down = pad.down || TOUCH.dir.down;
+  for (const id of TOUCH.queue) pad[id] = true;
+  return pad;
+}
+
 const P1_KEYS = { left: 'KeyA', right: 'KeyD', up: 'KeyW', down: 'KeyS', punch: 'KeyF', kick: 'KeyG' };
 const P2_KEYS = { left: 'ArrowLeft', right: 'ArrowRight', up: 'ArrowUp', down: 'ArrowDown', punch: 'KeyK', kick: 'KeyL' };
 
@@ -1098,6 +1212,7 @@ class Game {
     }
 
     keysPressed.clear();
+    TOUCH.queue.clear();
   }
 
   updateFight(frozen) {
@@ -1108,7 +1223,7 @@ class Game {
       if ((this.frame & 1) === 0) return;   // cinematic half speed
     }
     this.updateBlood();
-    const pad1 = frozen ? { ...EMPTY_PAD } : readPad(P1_KEYS);
+    const pad1 = frozen ? { ...EMPTY_PAD } : mergeTouchPad(readPad(P1_KEYS));
     const pad2 = frozen ? { ...EMPTY_PAD }
       : this.vsCpu ? cpuThink(this.p2, this.p1, this) : readPad(P2_KEYS);
 
@@ -1723,8 +1838,43 @@ class Game {
       c.font = 'bold 18px "Courier New", monospace';
       c.textAlign = 'center';
       c.fillStyle = 'rgba(255,255,255,0.75)';
-      c.fillText('F/G attack · ↓→+F wave · ↓→+G dash slash · ↓↓+F rising slash · back=block · M=music', W / 2, H - 14);
+      c.fillText(TOUCH.enabled
+        ? 'Drag left side to move · tap buttons to attack · hold away from foe to block'
+        : 'F/G attack · ↓→+F wave · ↓→+G dash slash · ↓↓+F rising slash · back=block · M=music', W / 2, H - 14);
     }
+  }
+
+  drawTouchControls(c) {
+    if (!TOUCH.enabled) return;
+    const fighting = this.screen === 'fight' || this.screen === 'intro' || this.screen === 'roundend';
+    if (!fighting) return;
+    c.save();
+    // floating stick
+    const o = TOUCH.stickOrigin || { x: 140, y: H - 120 };
+    c.globalAlpha = TOUCH.stickOrigin ? 0.4 : 0.22;
+    c.strokeStyle = '#ffffff';
+    c.lineWidth = 3;
+    c.beginPath(); c.arc(o.x, o.y, 58, 0, Math.PI * 2); c.stroke();
+    const k = TOUCH.stickPos || o;
+    const kx = clamp(k.x, o.x - 44, o.x + 44), ky = clamp(k.y, o.y - 44, o.y + 44);
+    c.fillStyle = '#ffffff';
+    c.beginPath(); c.arc(kx, ky, 24, 0, Math.PI * 2); c.fill();
+    // buttons
+    for (const b of TOUCH_BUTTONS) {
+      const held = Object.values(TOUCH.held).includes(b.id) || TOUCH.queue.has(b.id);
+      c.globalAlpha = held ? 0.65 : 0.3;
+      c.fillStyle = b.color;
+      c.beginPath(); c.arc(b.x, b.y, b.r, 0, Math.PI * 2); c.fill();
+      c.globalAlpha = held ? 0.95 : 0.55;
+      c.strokeStyle = '#ffffff';
+      c.lineWidth = 2.5;
+      c.beginPath(); c.arc(b.x, b.y, b.r, 0, Math.PI * 2); c.stroke();
+      c.fillStyle = '#ffffff';
+      c.font = 'bold ' + (b.r > 40 ? 16 : 12) + 'px "Courier New", monospace';
+      c.textAlign = 'center';
+      c.fillText(b.label, b.x, b.y + 5);
+    }
+    c.restore();
   }
 
   draw(c) {
@@ -1745,6 +1895,7 @@ class Game {
       case 'versus': this.drawVersus(c); break;
       default: this.drawFightScreen(c); break;
     }
+    this.drawTouchControls(c);
   }
 }
 
