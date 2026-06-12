@@ -1,6 +1,7 @@
 /* ============================================================
-   STREET FIGHTER 2 — JS EDITION
-   A fan-made homage built with HTML5 Canvas + vanilla JS.
+   SWIFT SWORD
+   A 2D samurai dueling game built with HTML5 Canvas + vanilla JS.
+   Inspired by classic arcade fighters.
    ============================================================ */
 'use strict';
 
@@ -1367,36 +1368,45 @@ class Game {
     c.fillStyle = 'rgba(0,0,0,0.45)';
     c.fillRect(0, 0, W, H);
 
+    // slash arc behind the title
+    const sw = 1 - Math.pow(1 - Math.min(1, this.demoT / 40), 3);
+    c.save();
+    c.translate(W / 2, 195);
+    c.strokeStyle = 'rgba(255,255,255,0.85)';
+    c.lineCap = 'round';
+    c.shadowColor = '#aac4ff';
+    c.shadowBlur = 22;
+    c.lineWidth = 7;
+    c.beginPath();
+    c.arc(0, 70, 330, Math.PI * 1.12, Math.PI * (1.12 + 0.76 * sw));
+    c.stroke();
+    c.restore();
+
     c.textAlign = 'center';
-    c.font = 'bold 92px Impact, "Arial Black", sans-serif';
-    c.lineWidth = 10;
-    c.strokeStyle = '#3a1500';
-    c.strokeText('STREET FIGHTER', W / 2, 190);
-    const grad = c.createLinearGradient(0, 110, 0, 200);
-    grad.addColorStop(0, '#fff0a0');
-    grad.addColorStop(0.55, '#ffb020');
+    c.font = 'bold 108px Impact, "Arial Black", sans-serif';
+    c.lineWidth = 11;
+    c.strokeStyle = '#1a0a08';
+    c.strokeText('SWIFT SWORD', W / 2, 230);
+    const grad = c.createLinearGradient(0, 130, 0, 240);
+    grad.addColorStop(0, '#f4f6ff');
+    grad.addColorStop(0.5, '#c8d4e8');
+    grad.addColorStop(0.52, '#8a1414');
     grad.addColorStop(1, '#d03010');
     c.fillStyle = grad;
-    c.fillText('STREET FIGHTER', W / 2, 190);
-
-    c.font = 'bold 120px Impact, "Arial Black", sans-serif';
-    c.strokeStyle = '#001a3a';
-    c.strokeText('II', W / 2, 305);
-    c.fillStyle = '#60c0ff';
-    c.fillText('II', W / 2, 305);
+    c.fillText('SWIFT SWORD', W / 2, 230);
 
     c.font = 'bold 20px "Courier New", monospace';
     c.fillStyle = '#ffd060';
-    c.fillText('— JS FAN EDITION —', W / 2, 345);
+    c.fillText('— A SAMURAI DUEL IN THE OAK WOODS —', W / 2, 290);
 
     if (Math.floor(this.demoT / 30) % 2 === 0) {
       c.font = 'bold 26px "Courier New", monospace';
       c.fillStyle = '#fff';
-      c.fillText('PRESS ENTER', W / 2, 430);
+      c.fillText('PRESS ENTER', W / 2, 420);
     }
-    c.font = 'bold 17px "Courier New", monospace';
-    c.fillStyle = 'rgba(255,255,255,0.65)';
-    c.fillText('A fan-made homage. Not affiliated with Capcom.', W / 2, 500);
+    c.font = 'bold 16px "Courier New", monospace';
+    c.fillStyle = 'rgba(255,255,255,0.6)';
+    c.fillText('free CC0/free-license art: LuizMelo · brullov · Kenney · FreePD', W / 2, 500);
   }
 
   drawMode(c) {
