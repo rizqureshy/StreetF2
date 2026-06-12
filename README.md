@@ -51,10 +51,21 @@ Menus: **Enter** to confirm, **Esc** to go back.
 
 ## Sound
 
-Everything is synthesized live with WebAudio — no audio files. The score is an
-eerie Japanese-style piece built from koto plucks on a hirajoshi pentatonic
-scale, taiko drums, and temple bells; it shifts from a sparse, unsettling menu
-theme to a driving battle rhythm during fights. Press **M** to toggle music.
+- **Sound effects** are real recorded samples (Kenney audio packs, CC0):
+  sword slices and draws, heavy body punches, metal clangs on block, cloth
+  rustle on jump, body falls on knockdown, and a temple gong at round start.
+  A WebAudio synth fallback covers any file that fails to load.
+- **Announcer voice** (Kenney Voiceover Pack — Fighter): "Ready?", "Go!",
+  "Round", "Final Round", "Hurry up!", "Time over", "You win / You lose".
+- **Music** is synthesized live: an eerie Japanese-style score built from koto
+  plucks on a hirajoshi pentatonic scale, taiko drums, and temple bells; it
+  shifts from a sparse menu theme to a driving battle rhythm. **M** toggles it.
+
+## Match flow
+
+Character select leads into a **VS face-off splash** (big pixel portraits,
+taunts), then the fighters perform a short **kata demonstration** of their
+blade work while the announcer counts down — *Ready? … 3 … 2 … 1 … FIGHT!*
 
 ## Fighters
 
@@ -83,5 +94,8 @@ Real pixel-art sprite characters with full animation sets
 - Background & shop: "Oak Woods" environment asset pack by **brullov**
   ([itch.io](https://brullov.itch.io/oak-woods)) — free for commercial and
   non-commercial use.
+- Sound effects & announcer voice: **Kenney** audio packs — Impact Sounds,
+  RPG Audio, UI Audio, Voiceover Pack: Fighter ([kenney.nl](https://kenney.nl),
+  CC0).
 
 *A fan-made homage for educational purposes. Not affiliated with or endorsed by Capcom.*
