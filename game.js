@@ -27,46 +27,6 @@ function initAudio() {
     if (audioCtx) decodeAllSamples();
   }
 }
-function beep(freq, dur, type = 'square', vol = 0.12, slide = 0) {
-  if (!audioCtx) return;
-  const t = audioCtx.currentTime;
-  const osc = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  osc.type = type;
-  osc.frequency.setValueAtTime(freq, t);
-  if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(30, freq + slide), t + dur);
-  g.gain.setValueAtTime(vol, t);
-  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-  osc.connect(g).connect(audioCtx.destination);
-  osc.start(t);
-  osc.stop(t + dur);
-}
-let noiseBuffer = null;
-function noiseBuf() {
-  if (!noiseBuffer) {
-    noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate, audioCtx.sampleRate);
-    const d = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  }
-  return noiseBuffer;
-}
-function noiseSfx(dur, f0, f1, vol, type = 'bandpass', q = 1.5) {
-  if (!audioCtx) return;
-  const t = audioCtx.currentTime;
-  const n = audioCtx.createBufferSource();
-  n.buffer = noiseBuf();
-  const flt = audioCtx.createBiquadFilter();
-  flt.type = type;
-  flt.Q.value = q;
-  flt.frequency.setValueAtTime(f0, t);
-  flt.frequency.exponentialRampToValueAtTime(Math.max(40, f1), t + dur);
-  const g = audioCtx.createGain();
-  g.gain.setValueAtTime(vol, t);
-  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-  n.connect(flt).connect(g).connect(audioCtx.destination);
-  n.start(t);
-  n.stop(t + dur + 0.02);
-}
 // ---------------- Sampled SFX (Kenney audio packs, CC0) ----------------
 const SAMPLES = {};
 function loadSample(name, url) {
@@ -121,105 +81,36 @@ const SFX_FILES = {
   vo_you_win: 'assets/vo/you_win.ogg', vo_you_lose: 'assets/vo/you_lose.ogg',
   vo_time_over: 'assets/vo/time_over.ogg', vo_hurry: 'assets/vo/hurry_up.ogg',
   vo_tie: 'assets/vo/its_a_tie.ogg', vo_congrats: 'assets/vo/congratulations.ogg',
+  laser1: 'assets/sfx/laser_large_000.ogg', laser2: 'assets/sfx/laser_large_001.ogg',
+  force1: 'assets/sfx/force_field_000.ogg', force2: 'assets/sfx/force_field_001.ogg', force3: 'assets/sfx/force_field_002.ogg',
+  expl1: 'assets/sfx/explosion_crunch_000.ogg', expl2: 'assets/sfx/explosion_crunch_001.ogg', expl3: 'assets/sfx/explosion_crunch_002.ogg',
+  music_calm: 'assets/music/menu.mp3', music_battle: 'assets/music/battle.mp3',
 };
 for (const [n, u] of Object.entries(SFX_FILES)) loadSample(n, u);
 const VOICE = { say: (name, vol = 1) => playSample(name, vol, 0.015) };
 
 const SFX = {
-  // metallic sword impact: ring + body thump
-  hit: () => {
-    const ok = playSample(['slice1', 'slice2'], 0.85);
-    playSample(['punchH1', 'punchH2', 'punchH3'], 0.8);
-    if (!ok) { noiseSfx(0.09, 3200, 2200, 0.14, 'bandpass', 7); beep(74, 0.16, 'sine', 0.26, -28); }
-  },
-  block: () => {
-    if (!playSample(['metal1', 'metal2', 'metal3'], 0.7)) {
-      noiseSfx(0.06, 1800, 1400, 0.1, 'bandpass', 5); beep(330, 0.08, 'square', 0.07, -90);
-    }
-  },
-  whoosh: () => {
-    if (!playSample(['swing1', 'swing2', 'swing3'], 0.55, 0.1)) noiseSfx(0.17, 950, 240, 0.16, 'bandpass', 1.2);
-  },
-  fireball: () => { beep(220, 0.32, 'sawtooth', 0.1, 320); noiseSfx(0.3, 400, 1600, 0.08, 'bandpass', 2); },
-  jump: () => {
-    if (!playSample(['cloth1', 'cloth2'], 0.7, 0.1)) beep(260, 0.1, 'triangle', 0.06, 160);
-  },
+  hit: () => { playSample(['slice1', 'slice2'], 0.85); playSample(['punchH1', 'punchH2', 'punchH3'], 0.8); },
+  block: () => playSample(['metal1', 'metal2', 'metal3'], 0.7),
+  whoosh: () => playSample(['swing1', 'swing2', 'swing3'], 0.55, 0.1),
+  jump: () => playSample(['cloth1', 'cloth2'], 0.7, 0.1),
   land: () => playSample(['land1', 'land2'], 0.4, 0.1),
   fall: () => { playSample(['body1', 'body2'], 0.9); playSample('floor', 0.5); },
-  ko: () => {
-    beep(300, 0.8, 'sawtooth', 0.16, -262);
-    if (!playSample(['body1', 'body2'], 1)) noiseSfx(0.5, 900, 90, 0.16, 'lowpass');
-  },
-  select: () => { if (!playSample('click1', 0.8, 0)) beep(700, 0.06, 'square', 0.08); },
-  confirm: () => { if (!playSample('click2', 0.9, 0)) beep(520, 0.08, 'square', 0.1); },
-  sweep: () => {
-    const ok = playSample(['punchM1', 'punchM2'], 0.85);
-    playSample('chop', 0.5);
-    if (!ok) { beep(120, 0.18, 'sawtooth', 0.13, -62); }
-  },
-  gong: () => { if (!playSample('gong', 0.85, 0) && audioCtx && musicGain) templeBell(220, audioCtx.currentTime, 0.1); },
+  ko: () => { playSample(['body1', 'body2'], 1); playSample(['expl1', 'expl2', 'expl3'], 0.4); },
+  select: () => playSample('click1', 0.8, 0),
+  confirm: () => playSample('click2', 0.9, 0),
+  sweep: () => { playSample(['punchM1', 'punchM2'], 0.85); playSample('chop', 0.5); },
+  gong: () => playSample('gong', 0.85, 0),
+  wave: () => { playSample(['laser1', 'laser2'], 0.45); playSample('force1', 0.25, 0.1); },
+  dashSfx: () => { playSample(['slice1', 'slice2'], 0.75, 0.12); playSample('force3', 0.4, 0.15); },
+  risingSfx: () => { playSample('force2', 0.55, 0.08); playSample(['slice1', 'slice2'], 0.65, 0.1); },
+  specialHit: () => playSample(['expl1', 'expl2', 'expl3'], 0.45),
 };
 
-// ---------------- Music (procedural eerie Japanese score) ----------------
+// ---------------- Music (FreePD.com tracks, CC0) ----------------
 let musicGain = null;
-function kotoNote(freq, when, vol = 0.05, decay = 1.4) {
-  const o = audioCtx.createOscillator();
-  o.type = 'triangle';
-  o.frequency.setValueAtTime(freq, when);
-  o.frequency.exponentialRampToValueAtTime(freq * 0.994, when + decay);
-  const flt = audioCtx.createBiquadFilter();
-  flt.type = 'lowpass';
-  flt.frequency.value = 2400;
-  const g = audioCtx.createGain();
-  g.gain.setValueAtTime(vol, when);
-  g.gain.exponentialRampToValueAtTime(0.0008, when + decay);
-  o.connect(flt).connect(g).connect(musicGain);
-  o.start(when);
-  o.stop(when + decay);
-  // pluck transient
-  const n = audioCtx.createBufferSource();
-  n.buffer = noiseBuf();
-  const nf = audioCtx.createBiquadFilter();
-  nf.type = 'bandpass';
-  nf.frequency.value = Math.min(8000, freq * 2.5);
-  nf.Q.value = 2;
-  const ng = audioCtx.createGain();
-  ng.gain.setValueAtTime(vol * 0.6, when);
-  ng.gain.exponentialRampToValueAtTime(0.0008, when + 0.05);
-  n.connect(nf).connect(ng).connect(musicGain);
-  n.start(when);
-  n.stop(when + 0.06);
-}
-function taiko(when, vol = 0.16) {
-  const o = audioCtx.createOscillator();
-  o.type = 'sine';
-  o.frequency.setValueAtTime(95, when);
-  o.frequency.exponentialRampToValueAtTime(42, when + 0.22);
-  const g = audioCtx.createGain();
-  g.gain.setValueAtTime(vol, when);
-  g.gain.exponentialRampToValueAtTime(0.001, when + 0.28);
-  o.connect(g).connect(musicGain);
-  o.start(when);
-  o.stop(when + 0.3);
-}
-function templeBell(freq, when, vol = 0.03) {
-  for (const [m, v] of [[1, vol], [2.76, vol * 0.4], [5.4, vol * 0.14]]) {
-    const o = audioCtx.createOscillator();
-    o.type = 'sine';
-    o.frequency.value = freq * m;
-    const g = audioCtx.createGain();
-    g.gain.setValueAtTime(v, when);
-    g.gain.exponentialRampToValueAtTime(0.0006, when + 2.6);
-    o.connect(g).connect(musicGain);
-    o.start(when);
-    o.stop(when + 2.7);
-  }
-}
-// hirajoshi pentatonic on A — the minor seconds give it the eerie shrine feel
-const SCALE_LOW = [110, 116.54, 130.81, 164.81, 174.61];
-const SCALE_MID = [220, 233.08, 261.63, 329.63, 349.23, 440, 466.16];
 const MUSIC = {
-  mode: null, step: 0, nextT: 0, timer: null, muted: false,
+  mode: null, muted: false, src: null, playingTrack: null,
   ensure(mode) {
     if (!audioCtx) return;
     if (!musicGain) {
@@ -228,38 +119,28 @@ const MUSIC = {
       musicGain.connect(audioCtx.destination);
     }
     this.mode = mode;
-    if (!this.timer) {
-      this.nextT = audioCtx.currentTime + 0.1;
-      this.timer = setInterval(() => this.tick(), 90);
+    const want = 'music_' + (mode === 'battle' ? 'battle' : 'calm');
+    if (this.playingTrack !== want && SAMPLES[want] && SAMPLES[want].buf) {
+      this.stopTrack();
+      const s = audioCtx.createBufferSource();
+      s.buffer = SAMPLES[want].buf;
+      s.loop = true;
+      const g = audioCtx.createGain();
+      g.gain.value = mode === 'battle' ? 0.42 : 0.4;
+      s.connect(g).connect(musicGain);
+      s.start();
+      this.src = s;
+      this.playingTrack = want;
     }
+  },
+  stopTrack() {
+    if (this.src) { try { this.src.stop(); } catch (e) { /* already stopped */ } }
+    this.src = null;
+    this.playingTrack = null;
   },
   toggleMute() {
     this.muted = !this.muted;
     if (musicGain) musicGain.gain.value = this.muted ? 0 : 0.9;
-  },
-  tick() {
-    const stepDur = this.mode === 'battle' ? 0.165 : 0.24;
-    while (this.nextT < audioCtx.currentTime + 0.35) {
-      this.schedule(this.nextT);
-      this.nextT += stepDur;
-      this.step++;
-    }
-  },
-  schedule(t) {
-    const s = this.step % 32;
-    const rnd = Math.abs(Math.sin(this.step * 12.9898) * 43758.5453) % 1;
-    if (this.mode === 'battle') {
-      if (s % 8 === 0) taiko(t, 0.17);
-      if (s % 8 === 3) taiko(t, 0.07);
-      if (s % 16 === 10) taiko(t, 0.12);
-      if (rnd < 0.42) kotoNote(SCALE_MID[Math.floor(rnd * 100) % SCALE_MID.length], t, 0.042, 0.9);
-      if (s === 24) templeBell(880, t, 0.018);
-    } else {
-      if (rnd < 0.22) kotoNote(SCALE_LOW[Math.floor(rnd * 100) % SCALE_LOW.length], t, 0.05, 2.2);
-      if (rnd > 0.93) kotoNote(SCALE_MID[Math.floor(rnd * 100) % SCALE_MID.length], t + 0.05, 0.028, 1.6);
-      if (s === 0 && rnd < 0.5) taiko(t, 0.055);
-      if (s === 20 && rnd > 0.4) templeBell(440, t, 0.03);
-    }
   },
 };
 
@@ -485,7 +366,9 @@ class Fighter {
     if (def.special && this.char.moves) {
       this.callout = { text: this.char.moves[name] || name.toUpperCase(), t: 0 };
     }
-    if (def.projectile) SFX.fireball();
+    if (def.projectile) SFX.wave();
+    else if (def.dash) SFX.dashSfx();
+    else if (def.rising) SFX.risingSfx();
     else SFX.whoosh();
   }
 
@@ -888,6 +771,8 @@ class Game {
     this.p2.resetRound();
     this.projectiles = [];
     this.sparks = [];
+    this.blood = [];
+    this.stains = [];
     this.hitstop = 0;
     this.shake = 0;
     this.timeLeft = ROUND_TIME;
@@ -1005,9 +890,17 @@ class Game {
         }
         break;
 
-      case 'roundend':
+      case 'roundend': {
+        // winner performs a victory kata over the fallen opponent
+        const v = this.victor;
+        if (v && v.hp > 0 && v.grounded) {
+          if (v.state === 'win' && this.screenT >= 70) { v.state = 'idle'; }
+          if (this.screenT === 75) v.startAttack('punch');
+          if (this.screenT === 120) v.startAttack('kick');
+          if (this.screenT === 165) v.startAttack('risingSlash');
+        }
         this.updateFight(true);
-        if (this.screenT > 170) {
+        if (this.screenT > 240) {
           if (this.wins1 >= ROUNDS_TO_WIN || this.wins2 >= ROUNDS_TO_WIN) {
             this.screen = 'matchend';
             this.screenT = 0;
@@ -1021,11 +914,20 @@ class Game {
           }
         }
         break;
+      }
 
-      case 'matchend':
+      case 'matchend': {
+        const v = this.victor;
+        if (v && v.state !== 'ko' && v.state !== 'down' && v.grounded && !v.attack &&
+            this.screenT % 120 === 60) {
+          if (v.state === 'win') v.state = 'idle';
+          const seq = ['punch', 'kick', 'sweep', 'risingSlash', 'dashSlash'];
+          v.startAttack(seq[Math.floor(this.screenT / 120) % seq.length]);
+        }
         this.updateFight(true);
         if (keysPressed.has('Enter')) { this.screen = 'title'; this.screenT = 0; SFX.confirm(); }
         break;
+      }
     }
 
     if (this.announce) {
@@ -1038,6 +940,7 @@ class Game {
 
   updateFight(frozen) {
     if (!this.p1) return;
+    this.updateBlood();
     if (this.hitstop > 0) { this.hitstop--; return; }   // impact freeze
     const pad1 = frozen ? { ...EMPTY_PAD } : readPad(P1_KEYS);
     const pad2 = frozen ? { ...EMPTY_PAD }
@@ -1080,7 +983,12 @@ class Game {
         this.sparks.push(new HitSpark(pr.x, pr.y, blocked));
         target.receiveHit(10, 7, false, pr.owner.x, blocked);
         if (blocked) target.hp = Math.max(1, target.hp - 2); // chip damage
-        else { this.hitstop = 4; this.shake = target.hp <= 0 ? 14 : 7; }
+        else {
+          this.hitstop = 4;
+          this.shake = target.hp <= 0 ? 14 : 7;
+          this.spawnBlood(pr.x, pr.y, Math.sign(pr.vx) || 1, target.hp <= 0 ? 55 : 20);
+          SFX.specialHit();
+        }
         this.checkKO();
       }
       // projectiles cancel each other
@@ -1113,6 +1021,11 @@ class Game {
     if (!blocked) {
       this.hitstop = 6;
       this.shake = defender.hp <= 0 ? 14 : 8;
+      const dir = defender.x >= attacker.x ? 1 : -1;
+      let amount = def.damage * 2 + (def.knockdown ? 8 : 0) + (def.special ? 8 : 0);
+      if (defender.hp <= 0) amount += 40;   // fatal spray
+      this.spawnBlood(sparkX, sparkY, dir, amount);
+      if (def.special) SFX.specialHit();
     }
     // attacker pushback on connect
     attacker.vx = 0;
@@ -1146,6 +1059,7 @@ class Game {
       winner.stateT = 0;
       winner.attack = null;
     }
+    this.victor = winner || null;
     this.screen = 'roundend';
     this.screenT = 0;
   }
@@ -1385,6 +1299,72 @@ class Game {
     c.fillText(this.vsCpu ? 'P2: CPU' : 'P2: ←/→ move — K confirm', W / 2 + 240, 470);
   }
 
+  spawnBlood(x, y, dir, n) {
+    if (!this.blood) { this.blood = []; this.stains = []; }
+    for (let i = 0; i < n; i++) {
+      if (this.blood.length > 260) break;
+      const a = Math.random() * Math.PI - Math.PI / 2;
+      const sp = 2 + Math.random() * 6.5;
+      this.blood.push({
+        x, y,
+        vx: dir * Math.abs(Math.cos(a)) * sp + (Math.random() - 0.5) * 2.5,
+        vy: -Math.abs(Math.sin(a)) * sp - 2 - Math.random() * 3,
+        r: 1.5 + Math.random() * 3,
+        t: 0,
+        floor: GROUND + 4 + Math.random() * 28,
+      });
+    }
+  }
+
+  updateBlood() {
+    if (!this.blood) return;
+    for (const b of this.blood) {
+      b.t++;
+      b.vy += 0.5;
+      b.x += b.vx;
+      b.y += b.vy;
+      if (b.y >= b.floor) {
+        if (this.stains.length < 140) {
+          this.stains.push({
+            x: b.x, y: Math.min(H - 30, b.floor),
+            rx: b.r * (2 + Math.random() * 2.2), ry: b.r * (0.6 + Math.random() * 0.5),
+            a: 0.7,
+          });
+        }
+        b.t = 999;
+      }
+    }
+    this.blood = this.blood.filter(b => b.t < 90 && b.x > -20 && b.x < W + 20);
+    for (const s of this.stains) s.a -= 0.0011;
+    this.stains = this.stains.filter(s => s.a > 0.03);
+  }
+
+  drawStains(c) {
+    if (!this.stains) return;
+    c.save();
+    c.fillStyle = '#7a0d0d';
+    for (const s of this.stains) {
+      c.globalAlpha = Math.min(0.7, s.a);
+      c.beginPath();
+      c.ellipse(s.x, s.y, s.rx, s.ry, 0, 0, Math.PI * 2);
+      c.fill();
+    }
+    c.restore();
+  }
+
+  drawBloodDrops(c) {
+    if (!this.blood) return;
+    c.save();
+    c.globalAlpha = 0.9;
+    for (const b of this.blood) {
+      c.fillStyle = b.t % 3 ? '#b01515' : '#8a0f0f';
+      c.beginPath();
+      c.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      c.fill();
+    }
+    c.restore();
+  }
+
   drawVersus(c) {
     this.drawStage(c);
     c.fillStyle = 'rgba(8,4,18,0.84)';
@@ -1515,6 +1495,7 @@ class Game {
     const order = [this.p1, this.p2];
     if (this.p1.state === 'down' || this.p1.state === 'ko') { /* p1 first by default */ }
     else if (this.p2.state === 'down' || this.p2.state === 'ko') order.reverse();
+    this.drawStains(c);
     this.drawGhosts(c, order[0]);
     this.drawGhosts(c, order[1]);
     order[0].draw(c);
@@ -1523,6 +1504,7 @@ class Game {
     this.drawSlashTrail(c, order[1]);
     for (const pr of this.projectiles) pr.draw(c);
     for (const s of this.sparks) s.draw(c);
+    this.drawBloodDrops(c);
     this.drawCallout(c, order[0]);
     this.drawCallout(c, order[1]);
     c.restore();
@@ -1575,5 +1557,6 @@ function loop(ts) {
   ctx.imageSmoothingEnabled = false;   // keep pixel art crisp
   game.draw(ctx);
   requestAnimationFrame(loop);
+window.game = game;   // exposed for debugging/testing
 }
 requestAnimationFrame(loop);
