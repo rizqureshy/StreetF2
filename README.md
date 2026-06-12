@@ -63,7 +63,6 @@ or a full **storm** with lightning bolts and rolling thunder.
 - **Sound effects** are real recorded samples (Kenney audio packs, CC0):
   sword slices and draws, heavy body punches, metal clangs on block, cloth
   rustle on jump, body falls on knockdown, and a temple gong at round start.
-  A WebAudio synth fallback covers any file that fails to load.
 - **Announcer voice** (Kenney Voiceover Pack — Fighter): "Ready?", "Go!",
   "Round", "Final Round", "Hurry up!", "Time over", "You win / You lose".
 - **Music** is real recorded tracks from [FreePD.com](https://freepd.com) (CC0):
@@ -93,8 +92,9 @@ Real pixel-art sprite characters with full animation sets
 - Sprite-sheet renderer: animation states map onto the fighter state machine,
   with frame timing synced to attack frame data. Nearest-neighbor scaling
   keeps the pixel art crisp.
-- Hit-freeze frames and screen shake on heavy impacts.
-- Sound effects synthesized at runtime with WebAudio.
+- Hit-freeze frames, screen shake, slow-motion KOs with camera punch-in and
+  letterbox bars, and a per-match weather system (leaves / rain / storm).
+- All audio is recorded assets decoded into WebAudio buffers — no synthesis.
 
 ## Art credits
 
