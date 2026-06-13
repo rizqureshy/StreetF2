@@ -147,6 +147,17 @@ const SFX_FILES = {
   vo_you_win: 'assets/vo/you_win.mp3', vo_you_lose: 'assets/vo/you_lose.mp3',
   vo_time_over: 'assets/vo/time_over.mp3', vo_hurry: 'assets/vo/hurry_up.mp3',
   vo_tie: 'assets/vo/its_a_tie.mp3', vo_congrats: 'assets/vo/congratulations.mp3',
+  vo_1: 'assets/vo/1.mp3', vo_2: 'assets/vo/2.mp3', vo_3: 'assets/vo/3.mp3',
+  vo_fight: 'assets/vo/fight.mp3',
+  vo_round_1: 'assets/vo/round_1.mp3', vo_round_2: 'assets/vo/round_2.mp3', vo_round_3: 'assets/vo/round_3.mp3',
+  vo_choose: 'assets/vo/choose_your_character.mp3',
+  vo_p1: 'assets/vo/player_1.mp3', vo_p2: 'assets/vo/player_2.mp3',
+  vo_prepare: 'assets/vo/prepare_yourself.mp3',
+  vo_combo: 'assets/vo/combo.mp3',
+  vo_flawless: 'assets/vo/flawless_victory.mp3',
+  vo_sudden: 'assets/vo/sudden_death.mp3',
+  vo_winner: 'assets/vo/winner.mp3',
+  vo_game_over: 'assets/vo/game_over.mp3',
   laser1: 'assets/sfx/laser_large_000.mp3', laser2: 'assets/sfx/laser_large_001.mp3',
   force1: 'assets/sfx/force_field_000.mp3', force2: 'assets/sfx/force_field_001.mp3', force3: 'assets/sfx/force_field_002.mp3',
   expl1: 'assets/sfx/explosion_crunch_000.mp3', expl2: 'assets/sfx/explosion_crunch_001.mp3', expl3: 'assets/sfx/explosion_crunch_002.mp3',
@@ -232,6 +243,7 @@ const TOUCH = {
   stickPos: null,
 };
 const TOUCH_BUTTONS = [
+  { id: 'super',     label: 'SUPER', x: W - 340, y: H - 132, r: 37, color: '#e8c020', needsMeter: true },
   { id: 'punch',     label: 'SLASH', x: W - 90,  y: H - 78,  r: 46, color: '#c83030' },
   { id: 'kick',      label: 'KICK',  x: W - 196, y: H - 110, r: 46, color: '#3060c8' },
   { id: 'hadouken',  label: 'WAVE',  x: W - 78,  y: H - 188, r: 33, color: '#9040c0' },
@@ -299,6 +311,7 @@ function onTouchStart(e) {
     }
     let hit = null;
     for (const b of TOUCH_BUTTONS) {
+      if (b.needsMeter && (!g.p1 || g.p1.meter < 100)) continue;
       if ((p.x - b.x) ** 2 + (p.y - b.y) ** 2 < (b.r + 12) ** 2) { hit = b; break; }
     }
     if (hit) {
@@ -422,7 +435,8 @@ const CHARACTERS = [
     // fraction of the attack during which the blade is visually extended
     swing: { Attack1: [0.62, 0.88], Attack2: [0.62, 0.88] },
     face: { x: 76, y: 64, s: 36 },
-    moves: { hadouken: 'TEMPEST WAVE', dashSlash: 'GALE DASH', risingSlash: 'DRAGON ASCENT' },
+    moves: { hadouken: 'TEMPEST WAVE', dashSlash: 'GALE DASH', risingSlash: 'DRAGON ASCENT', superWave: 'TEMPEST BARRAGE', superCuts: 'TEMPEST BARRAGE' },
+    superMove: 'superWave',
     fireball: '#58b4ff',
     taunt: 'MY BLADE NEVER WAVERS!',
   },
@@ -432,7 +446,8 @@ const CHARACTERS = [
     frames: { Idle: 4, Run: 8, Jump: 2, Fall: 2, Attack1: 4, Attack2: 4, TakeHit: 3, Death: 7 },
     swing: { Attack1: [0.26, 0.55], Attack2: [0.26, 0.55] },
     face: { x: 84, y: 68, s: 36 },
-    moves: { hadouken: 'PHANTOM WAVE', dashSlash: 'SHADOW DASH', risingSlash: 'DEMON RISE' },
+    moves: { hadouken: 'PHANTOM WAVE', dashSlash: 'SHADOW DASH', risingSlash: 'DEMON RISE', superCuts: 'THOUSAND CUTS', superWave: 'THOUSAND CUTS' },
+    superMove: 'superCuts',
     fireball: '#c44dff',
     taunt: 'YOU WERE NEVER A MATCH!',
   },
@@ -471,6 +486,9 @@ const ATTACKS = {
   sweep:       { startup: 12, active: 9,  recovery: 21, damage: 7,  kb: 4,   box: { x: 15, y: -65,  w: 235, h: 65 },  anim: 'Attack2', crouch: true, knockdown: true },
   jumpKick:    { startup: 8,  active: 14, recovery: 10, damage: 9,  kb: 6,   box: { x: 0,  y: -150, w: 230, h: 130 }, anim: 'Attack2', air: true },
   hadouken:    { startup: 20, active: 1,  recovery: 28, damage: 0,  kb: 0,   box: null, anim: 'Attack1', projectile: true, special: true },
+  superWave:   { startup: 24, active: 1,  recovery: 34, damage: 0,  kb: 0,   box: null, anim: 'Attack1', projectile: true, special: true, superN: 3, isSuper: true },
+  superCuts:   { startup: 12, active: 30, recovery: 22, damage: 4,  kb: 3,   box: { x: 0, y: -200, w: 280, h: 185 }, anim: 'Attack2', knockdown: true, dash: 9, chip: 4, special: true, rehit: 7, isSuper: true },
+  throw:       { startup: 7,  active: 4,  recovery: 18, damage: 0,  kb: 0,   box: { x: 10, y: -170, w: 95, h: 160 }, anim: 'Attack1', isThrow: true },
   dashSlash:   { startup: 13, active: 15, recovery: 18, damage: 10, kb: 7,   box: { x: 10, y: -195, w: 290, h: 175 }, anim: 'Attack2', knockdown: true, dash: 7, chip: 2, special: true },
   risingSlash: { startup: 10, active: 17, recovery: 23, damage: 11, kb: 6,   box: { x: -25, y: -290, w: 230, h: 270 }, anim: 'Attack1', knockdown: true, rising: true, chip: 2, special: true },
 };
@@ -709,8 +727,18 @@ class Fighter {
     if (this.attack) {
       const a = this.attack;
       a.t++;
-      if (a.def.projectile && a.t === a.st && !this.projAlive(game)) {
+      if (a.def.projectile && a.t === a.st && (a.def.superN || !this.projAlive(game))) {
         game.projectiles.push(new Projectile(this));
+      }
+      if (a.def.superN) {
+        for (let i = 1; i < a.def.superN; i++) {
+          if (a.t === a.st + i * 12) {
+            const pr = new Projectile(this);
+            pr.y -= i * 26;
+            pr.vx *= 1 + i * 0.12;
+            game.projectiles.push(pr);
+          }
+        }
       }
       if (a.def.dash && a.t >= a.st - 4 && a.t < a.st + a.act) {
         this.x += this.facing * a.def.dash;
@@ -756,6 +784,16 @@ class Fighter {
     // --- grounded actions ---
     if (this.attack) return;
 
+    // SUPER (full meter): dedicated button or punch+kick together
+    if ((pad.super || (pad.punch && pad.kick)) && this.meter >= 100) {
+      this.meter = 0;
+      this.startAttack(this.char.superMove);
+      game.superFlash = 26;
+      game.slowmo = Math.max(game.slowmo, 18);
+      game.shake = Math.max(game.shake, 6);
+      SFX.specialHit();
+      return;
+    }
     // special moves (checked before normals)
     if ((pad.hadouken || (pad.punch && this.qcfStage === 2)) && !this.projAlive(game)) {
       this.startAttack('hadouken');
@@ -770,6 +808,11 @@ class Fighter {
     if (pad.dashSlash || (pad.kick && this.qcfStage === 2)) {
       this.startAttack('dashSlash');
       this.qcfStage = 0;
+      return;
+    }
+    if (pad.punch && fwd && !pad.down && Math.abs(opp.x - this.x) < 115 && opp.grounded &&
+        opp.state !== 'hit' && opp.state !== 'down' && opp.state !== 'ko' && opp.state !== 'block') {
+      this.startAttack('throw');
       return;
     }
     if (pad.punch) { this.startAttack(pad.down ? 'crouchPunch' : 'punch'); return; }
@@ -960,6 +1003,11 @@ function cpuThink(f, opp, game) {
     return pad;
   }
 
+  if (f.meter >= 100 && dist < 320 && f.grounded && !f.attack && Math.random() < [0.01, 0.025, 0.05][DIFF]) {
+    pad.super = true;
+    return pad;
+  }
+
   if (ai.timer > 0) {
     ai.timer--;
   } else {
@@ -976,7 +1024,8 @@ function cpuThink(f, opp, game) {
       else if (r < 0.85 && !f.projAlive(game)) { ai.move = 'fireball'; ai.timer = 8; }
       else { ai.move = 'wait'; ai.timer = 14; }
     } else {
-      if (r < 0.3) { ai.move = 'punch'; ai.timer = 10; }
+      if (r < 0.14 && DIFF > 0) { ai.move = 'grab'; ai.timer = 12; }
+      else if (r < 0.3) { ai.move = 'punch'; ai.timer = 10; }
       else if (r < 0.55) { ai.move = 'kick'; ai.timer = 12; }
       else if (r < 0.7) { ai.move = 'sweep'; ai.timer = 12; }
       else if (r < 0.85) { ai.move = 'retreat'; ai.timer = 16; }
@@ -999,6 +1048,7 @@ function cpuThink(f, opp, game) {
     case 'punch': if (ai.fresh) pad.punch = true; break;
     case 'kick': if (ai.fresh) pad.kick = true; break;
     case 'sweep': if (ai.fresh) { pad.down = true; pad.kick = true; } break;
+    case 'grab': if (ai.fresh) { pad[fwdKey] = true; pad.punch = true; } break;
   }
   ai.fresh = false;
   return pad;
@@ -1326,6 +1376,7 @@ class Game {
     this.screen = 'versus';
     this.screenT = 0;
     SFX.gong();
+    VOICE.say('vo_prepare');
   }
 
   startRound() {
@@ -1339,8 +1390,13 @@ class Game {
     this.shake = 0;
     this.slowmo = 0;
     this.zoom = 1;
+    this.superFlash = 0;
+    this.combo = { owner: null, count: 0, timer: 0 };
+    this.floats = [];
     this.timeLeft = ROUND_TIME;
     this.timerAcc = 0;
+    this.suddenDeath = false;
+    this.flawless = false;
     this.screen = 'intro';
     this.screenT = 0;
     this.announce = null;
@@ -1395,6 +1451,7 @@ class Game {
             this.vsCpu = this.modeIdx === 0;
             this.screen = 'select'; this.screenT = 0;
             this.done1 = false; this.done2 = false;
+            VOICE.say('vo_choose');
           }
         }
         if (keysPressed.has('Escape')) { this.screen = 'title'; this.screenT = 0; }
@@ -1439,7 +1496,7 @@ class Game {
         if (k === 1) {
           this.setAnnounce(finalRound ? 'FINAL ROUND' : 'ROUND ' + this.round, 70);
           SFX.gong();
-          VOICE.say(finalRound ? 'vo_final_round' : 'vo_round');
+          VOICE.say(finalRound ? 'vo_final_round' : 'vo_round_' + Math.min(3, this.round));
         }
         if (r1) {
           // kata demonstration: each fighter shows their blade work
@@ -1449,9 +1506,9 @@ class Game {
           if (k === 160) this.p2.startAttack('punch');
           // countdown
           if (k === 200) { this.setAnnounce('READY?', 40); VOICE.say('vo_ready'); }
-          if (k === 245) { this.setAnnounce('3', 26); SFX.select(); }
-          if (k === 275) { this.setAnnounce('2', 26); SFX.select(); }
-          if (k === 305) { this.setAnnounce('1', 26); SFX.select(); }
+          if (k === 245) { this.setAnnounce('3', 26); VOICE.say('vo_3'); }
+          if (k === 275) { this.setAnnounce('2', 26); VOICE.say('vo_2'); }
+          if (k === 305) { this.setAnnounce('1', 26); VOICE.say('vo_1'); }
         } else {
           if (k === 60) { this.setAnnounce('READY?', 32); VOICE.say('vo_ready'); }
         }
@@ -1460,7 +1517,7 @@ class Game {
           this.screen = 'fight';
           this.screenT = 0;
           this.setAnnounce('FIGHT!', 45);
-          VOICE.say('vo_go');
+          VOICE.say('vo_fight');
           this.p1.controllable = true;
           this.p2.controllable = true;
         }
@@ -1479,6 +1536,11 @@ class Game {
         break;
 
       case 'roundend': {
+        if (this.flawless && this.screenT === 60) {
+          this.setAnnounce('FLAWLESS VICTORY', 75);
+          VOICE.say('vo_flawless');
+          this.flawless = false;
+        }
         // winner performs a victory kata over the fallen opponent
         const v = this.victor;
         if (v && v.hp > 0 && v.grounded) {
@@ -1543,6 +1605,8 @@ class Game {
       if (f.hpGhost > f.hp) f.hpGhost = Math.max(f.hp, f.hpGhost - 0.55);
       else f.hpGhost = f.hp;
     }
+    if (this.combo.timer > 0 && --this.combo.timer === 0) this.combo.count = 0;
+    if (this.floats) this.floats = this.floats.filter(ft => ++ft.t < 60);
     this.p1.update(pad1, this.p2, this);
     this.p2.update(pad2, this.p1, this);
 
@@ -1587,6 +1651,8 @@ class Game {
           this.shake = target.hp <= 0 ? 14 : 7;
           this.spawnBlood(pr.x, pr.y, Math.sign(pr.vx) || 1, target.hp <= 0 ? 55 : 20);
           SFX.specialHit();
+          pr.owner.meter = Math.min(100, pr.owner.meter + 9);
+          this.registerCombo(pr.owner);
         }
         this.checkKO();
       }
@@ -1603,20 +1669,61 @@ class Game {
   }
 
   resolveHit(attacker, defender, defenderPad) {
-    if (!attacker.attack || attacker.attack.hasHit) return;
+    const a = attacker.attack;
+    if (!a) return;
+    if (a.hasHit && !(a.def.rehit && a.t - (a.lastHitT || 0) >= a.def.rehit)) return;
     const hb = attacker.attackBox();
     if (!hb) return;
     if (defender.state === 'down' || defender.state === 'ko') return;
     if (defender.invulnT > 0) return;
     if (!rectsOverlap(hb, defender.body)) return;
 
-    attacker.attack.hasHit = true;
-    const def = attacker.attack.def;
+    a.hasHit = true;
+    a.lastHitT = a.t;
+    const def = a.def;
+
+    // throws beat block, whiff on airborne opponents
+    if (def.isThrow) {
+      if (!defender.grounded) return;
+      const dir = defender.x >= attacker.x ? 1 : -1;
+      defender.hp = Math.max(0, defender.hp - 10);
+      defender.attack = null;
+      defender.state = defender.hp <= 0 ? 'ko' : 'hit';
+      defender.stateT = 0;
+      defender.vy = -9;
+      defender.vx = dir * 7;
+      defender.y -= 2;
+      if (defender.hp <= 0) SFX.ko(); else SFX.fall();
+      attacker.meter = Math.min(100, attacker.meter + 12);
+      this.hitstop = 8;
+      this.shake = 9;
+      this.spawnBlood(defender.x, defender.y - 120, dir, 14);
+      this.sparks.push(new HitSpark(defender.x, defender.y - 120, false));
+      this.registerCombo(attacker);
+      this.checkKO();
+      return;
+    }
+
     const blocked = defender.canBlock(defenderPad);
     const sparkX = (Math.max(hb.x, defender.body.x) + Math.min(hb.x + hb.w, defender.body.x + defender.body.w)) / 2;
     const sparkY = hb.y + hb.h / 2;
     this.sparks.push(new HitSpark(sparkX, sparkY, blocked));
-    defender.receiveHit(def.damage, def.kb, !!def.knockdown, attacker.x, blocked);
+    // counter-hit: interrupted the defender's own startup
+    const counter = !blocked && defender.attack && defender.attack.t < defender.attack.st;
+    // combo damage scaling
+    let dmg = def.damage;
+    if (!blocked) {
+      dmg = Math.max(1, Math.round(dmg * Math.pow(0.9, Math.max(0, this.comboCount(attacker) - 1))));
+      if (counter) dmg = Math.round(dmg * 1.3);
+    }
+    defender.receiveHit(dmg, def.kb, !!def.knockdown, attacker.x, blocked);
+    if (counter) {
+      defender.stateT = -8;   // extended stun
+      this.floatText('COUNTER!', defender.x, defender.y - 200, '#ff5040');
+    }
+    attacker.meter = Math.min(100, attacker.meter + (blocked ? 5 : 11));
+    defender.meter = Math.min(100, defender.meter + (blocked ? 3 : 8));
+    if (!blocked) this.registerCombo(attacker);
     if (blocked && def.chip) defender.hp = Math.max(1, defender.hp - def.chip);
     if (!blocked) {
       this.hitstop = def.special ? 12 : 9;
@@ -1642,6 +1749,16 @@ class Game {
   }
 
   endRound(timeUp) {
+    // dead-even time-out -> one-hit sudden death instead of a dull tie
+    if (timeUp && this.p1.hp === this.p2.hp && !this.suddenDeath) {
+      this.suddenDeath = true;
+      this.p1.hp = this.p1.hpGhost = 1;
+      this.p2.hp = this.p2.hpGhost = 1;
+      this.timeLeft = 20;
+      this.setAnnounce('SUDDEN DEATH', 80);
+      VOICE.say('vo_sudden');
+      return;
+    }
     this.p1.controllable = false;
     this.p2.controllable = false;
     let winner = null;
@@ -1653,6 +1770,7 @@ class Game {
     } else {
       winner = this.p1.hp > 0 ? this.p1 : this.p2;
       this.setAnnounce('K.O.!', 90);
+      this.flawless = winner.hp >= MAX_HP;
     }
     if (winner === this.p1) this.wins1++;
     else if (winner === this.p2) this.wins2++;
@@ -1749,6 +1867,29 @@ class Game {
     const n2 = this.p2.char.name + (this.vsCpu ? ' CPU' : ' 2P');
     c.strokeText(n2, x2 + barW - 2, nameY);
     c.fillText(n2, x2 + barW - 2, nameY);
+
+    // super meter bars
+    const mY = y + barH + 30;
+    const mW = 220;
+    const drawMeter = (x, f, anchorRight) => {
+      c.fillStyle = 'rgba(0,0,0,0.5)';
+      c.fillRect(x, mY, mW, 9);
+      const w = mW * (f.meter / 100);
+      const full = f.meter >= 100;
+      c.fillStyle = full ? (Math.floor(this.frame / 5) % 2 ? '#ffffff' : '#40d0ff') : '#2898e8';
+      c.fillRect(anchorRight ? x + mW - w : x, mY, w, 9);
+      c.strokeStyle = 'rgba(255,255,255,0.7)';
+      c.lineWidth = 1.5;
+      c.strokeRect(x, mY, mW, 9);
+      if (full) {
+        c.font = 'bold 12px "Courier New", monospace';
+        c.fillStyle = '#fff';
+        c.textAlign = anchorRight ? 'left' : 'right';
+        c.fillText('SUPER READY', anchorRight ? x + mW + 8 : x - 8, mY + 9);
+      }
+    };
+    drawMeter(x1, this.p1, true);
+    drawMeter(x2 + barW - mW, this.p2, false);
 
     // round win pips
     const pip = (px, won) => {
@@ -1916,6 +2057,26 @@ class Game {
     c.fillStyle = '#ff8a7a';
     c.fillText(this.vsCpu ? 'P2: CPU'
       : TOUCH.enabled ? 'P2: tap a card' : 'P2: ←/→ move — K confirm', W / 2 + 240, 470);
+  }
+
+  comboCount(attacker) {
+    return this.combo.owner === attacker ? this.combo.count + 1 : 1;
+  }
+
+  registerCombo(attacker) {
+    if (this.combo.owner === attacker && this.combo.timer > 0) this.combo.count++;
+    else { this.combo.owner = attacker; this.combo.count = 1; }
+    this.combo.timer = 55;
+    if (this.combo.count === 3) VOICE.say('vo_combo');
+    if (this.combo.count >= 2) {
+      this.floatText(this.combo.count + ' HIT COMBO', attacker === this.p1 ? 200 : W - 200, 160,
+        attacker.char.fireball);
+    }
+  }
+
+  floatText(text, x, y, color) {
+    if (!this.floats) this.floats = [];
+    this.floats.push({ text, x, y, color, t: 0 });
   }
 
   spawnBlood(x, y, dir, n) {
@@ -2143,8 +2304,30 @@ class Game {
     this.drawLeaves(c);
     this.drawCallout(c, order[0]);
     this.drawCallout(c, order[1]);
+    if (this.floats) {
+      for (const ft of this.floats) {
+        c.save();
+        c.globalAlpha = Math.max(0, 1 - ft.t / 60);
+        c.font = 'bold 24px Impact, "Arial Black", sans-serif';
+        c.textAlign = 'center';
+        c.lineWidth = 4;
+        c.strokeStyle = '#140826';
+        c.strokeText(ft.text, ft.x, ft.y - ft.t * 0.5);
+        c.fillStyle = ft.color;
+        c.fillText(ft.text, ft.x, ft.y - ft.t * 0.5);
+        c.restore();
+      }
+    }
     c.restore();
     this.drawFlash(c);
+    if (this.superFlash > 0) {
+      c.save();
+      c.globalAlpha = Math.min(0.55, this.superFlash / 26 * 0.55);
+      c.fillStyle = '#ffffff';
+      c.fillRect(0, 0, W, H);
+      c.restore();
+      this.superFlash--;
+    }
     // cinematic letterbox bars
     const targetBar = this.slowmo > 0 || this.screen === 'roundend' || this.screen === 'matchend' ? 42 : 0;
     this.letterbox += (targetBar - this.letterbox) * 0.12;
@@ -2162,7 +2345,7 @@ class Game {
       c.fillStyle = 'rgba(255,255,255,0.75)';
       c.fillText(TOUCH.enabled
         ? 'Drag left side to move · tap buttons to attack · hold away from foe to block'
-        : 'F/G attack · ↓→+F wave · ↓→+G dash slash · ↓↓+F rising slash · back=block · M=music', W / 2, H - 14);
+        : 'F/G attack · specials ↓→F/↓→G/↓↓F · H=super(full bar) · fwd+F close=throw · 2xTap=dash', W / 2, H - 14);
     }
   }
 
@@ -2188,6 +2371,7 @@ class Game {
     c.beginPath(); c.arc(kx, ky, 24, 0, Math.PI * 2); c.fill();
     // buttons
     for (const b of TOUCH_BUTTONS) {
+      if (b.needsMeter && (!this.p1 || this.p1.meter < 100)) continue;
       const held = Object.values(TOUCH.held).includes(b.id) || TOUCH.queue.has(b.id);
       c.globalAlpha = held ? 0.65 : 0.3;
       c.fillStyle = b.color;
