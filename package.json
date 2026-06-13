@@ -1,0 +1,10 @@
+{
+  "name": "swift-sword",
+  "version": "1.0.0",
+  "description": "A 2D samurai dueling game built with HTML5 Canvas and vanilla JS.",
+  "scripts": {
+    "test": "node --check game.js && node tests/smoke.js && node tests/mechanics.js",
+    "start": "npx http-server . -p 8080"
+  },
+  "license": "MIT"
+}

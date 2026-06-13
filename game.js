@@ -162,6 +162,7 @@ const SFX_FILES = {
   force1: 'assets/sfx/force_field_000.mp3', force2: 'assets/sfx/force_field_001.mp3', force3: 'assets/sfx/force_field_002.mp3',
   expl1: 'assets/sfx/explosion_crunch_000.mp3', expl2: 'assets/sfx/explosion_crunch_001.mp3', expl3: 'assets/sfx/explosion_crunch_002.mp3',
   music_calm: 'assets/music/menu.mp3', music_battle: 'assets/music/battle.mp3',
+  music_night: 'assets/music/night.mp3', music_doom: 'assets/music/doom.mp3',
 };
 for (const [n, u] of Object.entries(SFX_FILES)) loadSample(n, u);
 const VOICE = { say: (name, vol = 1) => playSample(name, vol, 0.015) };
@@ -188,22 +189,20 @@ const SFX = {
 let musicGain = null;
 const MUSIC = {
   mode: null, muted: false, src: null, playingTrack: null,
-  ensure(mode) {
+  ensure(want) {
     if (!audioCtx) return;
     if (!musicGain) {
       musicGain = audioCtx.createGain();
       musicGain.connect(audioCtx.destination);
     }
     musicGain.gain.value = this.muted ? 0 : 0.9 * (OPTIONS.musicVol / 10);
-    this.mode = mode;
-    const want = 'music_' + (mode === 'battle' ? 'battle' : 'calm');
     if (this.playingTrack !== want && SAMPLES[want] && SAMPLES[want].buf) {
       this.stopTrack();
       const s = audioCtx.createBufferSource();
       s.buffer = SAMPLES[want].buf;
       s.loop = true;
       const g = audioCtx.createGain();
-      g.gain.value = mode === 'battle' ? 0.42 : 0.4;
+      g.gain.value = 0.42;
       s.connect(g).connect(musicGain);
       s.start();
       this.src = s;
@@ -272,13 +271,13 @@ function touchMenuTap(p) {
   switch (g.screen) {
     case 'title': keysPressed.add('Enter'); break;
     case 'mode':
-      g.modeIdx = p.y < 290 ? 0 : 1;
+      g.modeIdx = clamp(Math.round((p.y - 215) / 52), 0, 4);
       keysPressed.add('Enter');
       break;
     case 'select':
       for (let i = 0; i < CHARACTERS.length; i++) {
-        const cx = W / 2 + (i - (CHARACTERS.length - 1) / 2) * 230;
-        if (Math.abs(p.x - cx) < 110 && p.y > 140 && p.y < 410) {
+        const cx = W / 2 + (i - (CHARACTERS.length - 1) / 2) * 215;
+        if (Math.abs(p.x - cx) < 100 && p.y > 140 && p.y < 410) {
           if (!g.done1) {
             g.sel1 = i;
             keysPressed.add('KeyF');
@@ -289,6 +288,18 @@ function touchMenuTap(p) {
         }
       }
       break;
+    case 'stagesel': {
+      for (let i = 0; i < STAGES.length; i++) {
+        const cx = W / 2 + (i - (STAGES.length - 1) / 2) * 280;
+        if (Math.abs(p.x - cx) < 130 && p.y > 180 && p.y < 380) {
+          if (g.stageIdx === i) keysPressed.add('Enter');
+          else { g.stageIdx = i; SFX.select(); }
+          return;
+        }
+      }
+      keysPressed.add('Enter');
+      break;
+    }
     case 'versus':
     case 'matchend':
       keysPressed.add('Enter');
@@ -451,6 +462,30 @@ const CHARACTERS = [
     fireball: '#c44dff',
     taunt: 'YOU WERE NEVER A MATCH!',
   },
+  {
+    id: 'ronin', name: 'RONIN', dir: null, base: 'kaito', tint: 'rgba(40,40,95,0.52)', baseFacing: 1,
+    scale: 3.4, footY: 121, cx: 94,
+    frames: { Idle: 8, Run: 8, Jump: 2, Fall: 2, Attack1: 6, Attack2: 6, TakeHit: 4, Death: 6 },
+    swing: { Attack1: [0.62, 0.88], Attack2: [0.62, 0.88] },
+    face: { x: 76, y: 64, s: 36 },
+    moves: { hadouken: 'VOID WAVE', dashSlash: 'GHOST DASH', risingSlash: 'RAVEN ASCENT', superCuts: 'HUNDRED GHOSTS', superWave: 'HUNDRED GHOSTS' },
+    superMove: 'superCuts',
+    speed: 1.18, power: 0.85,
+    fireball: '#8a7aff',
+    taunt: 'I DIED LONG AGO.',
+  },
+  {
+    id: 'oni', name: 'ONI', dir: null, base: 'kenji', tint: 'rgba(200,22,22,0.5)', baseFacing: -1,
+    scale: 3.45, footY: 127, cx: 102,
+    frames: { Idle: 4, Run: 8, Jump: 2, Fall: 2, Attack1: 4, Attack2: 4, TakeHit: 3, Death: 7 },
+    swing: { Attack1: [0.26, 0.55], Attack2: [0.26, 0.55] },
+    face: { x: 84, y: 68, s: 36 },
+    moves: { hadouken: 'HELLFIRE WAVE', dashSlash: 'DEMON CHARGE', risingSlash: 'ONI RISING', superCuts: 'MASSACRE', superWave: 'MASSACRE' },
+    superMove: 'superWave',
+    speed: 0.88, power: 1.3, boss: true,
+    fireball: '#ff3020',
+    taunt: 'YOUR SOUL IS MINE.',
+  },
 ];
 
 // ---------------- Asset loading ----------------
@@ -464,13 +499,44 @@ function loadImage(src) {
   img.src = src;
   return img;
 }
+function tintedSheet(img, tint) {
+  const cv = document.createElement('canvas');
+  cv.complete = false;
+  const apply = () => {
+    cv.width = img.width;
+    cv.height = img.height;
+    const x = cv.getContext('2d');
+    x.drawImage(img, 0, 0);
+    x.globalCompositeOperation = 'source-atop';
+    x.fillStyle = tint;
+    x.fillRect(0, 0, cv.width, cv.height);
+    cv.complete = true;
+  };
+  if (img.complete && img.naturalWidth) apply();
+  else if (img.addEventListener) img.addEventListener('load', apply);
+  else apply();
+  return cv;
+}
 for (const ch of CHARACTERS) {
+  if (ch.base) continue;
   SHEETS[ch.id] = {};
   for (const k of Object.keys(ch.frames)) SHEETS[ch.id][k] = loadImage(ch.dir + '/' + k + '.png');
+}
+for (const ch of CHARACTERS) {
+  if (!ch.base) continue;
+  SHEETS[ch.id] = {};
+  for (const k of Object.keys(ch.frames)) SHEETS[ch.id][k] = tintedSheet(SHEETS[ch.base][k], ch.tint);
 }
 const BG_IMG = loadImage('assets/background.png');
 const SHOP_IMG = loadImage('assets/shop.png');
 const assetsReady = () => assetsLoaded >= assetsTotal;
+
+// ---------------- Stages ----------------
+const STAGES = [
+  { id: 'dusk', name: 'OAK WOODS', tint: null, music: 'music_battle', weather: null },
+  { id: 'night', name: 'MOONLIT WOODS', tint: 'rgba(18,28,80,0.45)', music: 'music_night', weather: 'leaves', fireflies: true, moon: '#dfe8ff' },
+  { id: 'bloodmoon', name: 'BLOOD MOON', tint: 'rgba(110,8,8,0.36)', music: 'music_doom', weather: 'storm', moon: '#ff4030' },
+];
 
 // ---------------- Attack definitions ----------------
 // Frame data: startup, active, recovery (in 60fps frames).
@@ -848,7 +914,7 @@ class Fighter {
     if (pad.left || pad.right) {
       this.state = 'walk';
       const dir = pad.right ? 1 : -1;
-      const speed = dir === this.facing ? WALK_SPEED : WALK_SPEED * 0.78;
+      const speed = (dir === this.facing ? WALK_SPEED : WALK_SPEED * 0.78) * (this.char.speed || 1);
       this.x += dir * speed;
       this.walkPhase += 0.18 * dir * this.facing;
       this.clampX();
@@ -1093,6 +1159,13 @@ class Game {
     this.zoom = 1;
     this.camX = W / 2;
     this.letterbox = 0;
+    this.stageIdx = 0;
+    this.combo = { owner: null, count: 0, timer: 0 };
+    this.floats = [];
+    this.arcade = false;
+    this.training = false;
+    this.fireflies = [];
+    this.hitboxView = false;
     this.paused = false;
     this.pauseIdx = 0;
     this.optionsOpen = false;
@@ -1256,6 +1329,17 @@ class Game {
       l.spin += l.vr;
     }
     this.leaves = this.leaves.filter(l => l.y < H + 20 && l.x > -40);
+    // fireflies on moonlit stages
+    if (STAGES[this.stageIdx || 0].fireflies) {
+      while (this.fireflies.length < 14) {
+        this.fireflies.push({ x: Math.random() * W, y: 200 + Math.random() * 260, phase: Math.random() * 6.28, sp: 0.2 + Math.random() * 0.4 });
+      }
+      for (const fl of this.fireflies) {
+        fl.phase += 0.045;
+        fl.x += Math.sin(fl.phase * 0.7) * fl.sp;
+        fl.y += Math.cos(fl.phase * 0.5) * fl.sp * 0.7;
+      }
+    } else this.fireflies.length = 0;
     // rain
     if (w === 'rain' || w === 'storm') {
       const drops = w === 'storm' ? 9 : 5;
@@ -1320,6 +1404,19 @@ class Game {
     c.restore();
   }
 
+  drawFireflies(c) {
+    if (!this.fireflies.length) return;
+    c.save();
+    for (const fl of this.fireflies) {
+      const a = 0.35 + 0.3 * Math.sin(fl.phase * 2);
+      c.globalAlpha = Math.max(0.08, a);
+      dot(c, fl.x, fl.y, 2.2, '#d8ff90');
+      c.globalAlpha = a * 0.3;
+      dot(c, fl.x, fl.y, 5, '#d8ff90');
+    }
+    c.restore();
+  }
+
   drawRain(c) {
     if (this.weather !== 'rain' && this.weather !== 'storm') return;
     c.save();
@@ -1366,7 +1463,8 @@ class Game {
   }
 
   startMatch() {
-    this.setWeather(['leaves', 'rain', 'storm'][Math.floor(Math.random() * 3)]);
+    const st = STAGES[this.stageIdx || 0];
+    this.setWeather(st.weather || ['leaves', 'rain', 'storm'][Math.floor(Math.random() * 3)]);
     this.p1 = new Fighter(CHARACTERS[this.sel1], 250, 1, true);
     this.p2 = new Fighter(CHARACTERS[this.sel2], 710, -1, false);
     this.wins1 = 0; this.wins2 = 0;
@@ -1414,8 +1512,9 @@ class Game {
     this.updateWeather();
     if (keysPressed.has('KeyM')) MUSIC.toggleMute();
     if (audioCtx) {
-      const battle = (this.screen === 'fight' || this.screen === 'intro' || this.screen === 'roundend') && !this.paused;
-      MUSIC.ensure(battle ? 'battle' : 'calm');
+      const battle = (this.screen === 'fight' || this.screen === 'intro' || this.screen === 'roundend' ||
+        this.screen === 'matchend' || this.screen === 'versus') && !this.paused;
+      MUSIC.ensure(battle ? STAGES[this.stageIdx || 0].music : 'music_calm');
     }
     const inFight = this.screen === 'fight' || this.screen === 'intro' || this.screen === 'roundend';
     if (this.paused) {
@@ -1440,15 +1539,19 @@ class Game {
         if (keysPressed.has('Enter')) { this.screen = 'mode'; this.screenT = 0; SFX.confirm(); }
         break;
 
-      case 'mode':
-        if (keysPressed.has('ArrowUp') || keysPressed.has('KeyW')) { this.modeIdx = (this.modeIdx + 2) % 3; SFX.select(); }
-        if (keysPressed.has('ArrowDown') || keysPressed.has('KeyS')) { this.modeIdx = (this.modeIdx + 1) % 3; SFX.select(); }
+      case 'mode': {
+        const N = 5;
+        if (keysPressed.has('ArrowUp') || keysPressed.has('KeyW')) { this.modeIdx = (this.modeIdx + N - 1) % N; SFX.select(); }
+        if (keysPressed.has('ArrowDown') || keysPressed.has('KeyS')) { this.modeIdx = (this.modeIdx + 1) % N; SFX.select(); }
         if (keysPressed.has('Enter')) {
           SFX.confirm();
-          if (this.modeIdx === 2) {
+          if (this.modeIdx === 4) {
             this.screen = 'options'; this.screenT = 0; this.optIdx = 0;
           } else {
-            this.vsCpu = this.modeIdx === 0;
+            this.arcade = this.modeIdx === 0;
+            this.training = this.modeIdx === 3;
+            this.vsCpu = this.modeIdx !== 2;
+            this.arcadeIdx = 0;
             this.screen = 'select'; this.screenT = 0;
             this.done1 = false; this.done2 = false;
             VOICE.say('vo_choose');
@@ -1456,6 +1559,7 @@ class Game {
         }
         if (keysPressed.has('Escape')) { this.screen = 'title'; this.screenT = 0; }
         break;
+      }
 
       case 'options':
         if (this.optionsInput()) { this.screen = 'mode'; this.screenT = 0; }
@@ -1470,7 +1574,21 @@ class Game {
         }
         if (this.vsCpu) {
           if (this.done1 && !this.done2) {
-            do { this.sel2 = Math.floor(Math.random() * n); } while (this.sel2 === this.sel1);
+            if (this.arcade) {
+              const others = [];
+              for (let i = 0; i < n; i++) if (i !== this.sel1 && !CHARACTERS[i].boss) others.push(i);
+              for (let i = others.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [others[i], others[j]] = [others[j], others[i]];
+              }
+              for (let i = 0; i < n; i++) if (CHARACTERS[i].boss && i !== this.sel1) others.push(i);
+              this.ladder = others;
+              this.sel2 = this.ladder[0];
+            } else if (this.training) {
+              this.sel2 = (this.sel1 + 1) % n;
+            } else {
+              do { this.sel2 = Math.floor(Math.random() * n); } while (this.sel2 === this.sel1);
+            }
             this.done2 = true;
           }
         } else if (!this.done2) {
@@ -1478,10 +1596,25 @@ class Game {
           if (keysPressed.has('ArrowRight')) { this.sel2 = (this.sel2 + 1) % n; SFX.select(); }
           if (keysPressed.has('KeyK')) { this.done2 = true; SFX.confirm(); }
         }
-        if (this.done1 && this.done2 && this.screenT > 30) this.startMatch();
+        if (this.done1 && this.done2 && this.screenT > 30) {
+          if (this.arcade) {
+            this.stageIdx = this.arcadeIdx % STAGES.length;
+            this.startMatch();
+          } else {
+            this.screen = 'stagesel';
+            this.screenT = 0;
+          }
+        }
         if (keysPressed.has('Escape')) { this.screen = 'mode'; this.screenT = 0; }
         break;
       }
+
+      case 'stagesel':
+        if (keysPressed.has('KeyA') || keysPressed.has('ArrowLeft')) { this.stageIdx = (this.stageIdx + STAGES.length - 1) % STAGES.length; SFX.select(); }
+        if (keysPressed.has('KeyD') || keysPressed.has('ArrowRight')) { this.stageIdx = (this.stageIdx + 1) % STAGES.length; SFX.select(); }
+        if (keysPressed.has('Enter') || keysPressed.has('KeyF')) { SFX.confirm(); this.startMatch(); }
+        if (keysPressed.has('Escape')) { this.screen = 'select'; this.screenT = 0; this.done1 = this.done2 = false; }
+        break;
 
       case 'versus':
         if (this.screenT >= 175 || keysPressed.has('Enter') || keysPressed.has('KeyF')) {
@@ -1528,10 +1661,21 @@ class Game {
       case 'fight':
         this.updateFight(false);
         // round timer
-        if (++this.timerAcc >= 60) {
+        if (!this.training && ++this.timerAcc >= 60) {
           this.timerAcc = 0;
           if (--this.timeLeft <= 0) this.endRound(true);
           else if (this.timeLeft === 10) VOICE.say('vo_hurry');
+        }
+        if (this.training) {
+          if (keysPressed.has('KeyB')) this.hitboxView = !this.hitboxView;
+          if (this.frame - (this.lastDmgF || 0) > 110) {
+            for (const f of [this.p1, this.p2]) {
+              if (f.hp < MAX_HP && f.state !== 'hit' && f.state !== 'down' && f.state !== 'ko') {
+                f.hp = f.hpGhost = MAX_HP;
+              }
+            }
+            this.p1.meter = 100;
+          }
         }
         break;
 
@@ -1555,9 +1699,20 @@ class Game {
             this.screen = 'matchend';
             this.screenT = 0;
             const winner = this.wins1 >= ROUNDS_TO_WIN ? this.p1 : this.p2;
-            this.setAnnounce(winner.char.name + ' WINS!', 9999, winner.char.taunt);
-            if (this.vsCpu) VOICE.say(winner === this.p1 ? 'vo_you_win' : 'vo_you_lose');
-            else VOICE.say('vo_congrats');
+            if (this.arcade) {
+              if (winner === this.p1) {
+                const last = this.arcadeIdx >= this.ladder.length - 1;
+                this.setAnnounce('VICTORY!', 9999, last ? 'ENTER — CLAIM THE CROWN' : 'ENTER — NEXT OPPONENT');
+                VOICE.say('vo_winner');
+              } else {
+                this.setAnnounce('GAME OVER', 9999, 'ENTER — TRY AGAIN · ESC — QUIT');
+                VOICE.say('vo_game_over');
+              }
+            } else {
+              this.setAnnounce(winner.char.name + ' WINS!', 9999, winner.char.taunt);
+              if (this.vsCpu) VOICE.say(winner === this.p1 ? 'vo_you_win' : 'vo_you_lose');
+              else VOICE.say('vo_congrats');
+            }
           } else {
             this.round++;
             this.startRound();
@@ -1575,9 +1730,37 @@ class Game {
           v.startAttack(seq[Math.floor(this.screenT / 120) % seq.length]);
         }
         this.updateFight(true);
+        if (this.arcade) {
+          if (keysPressed.has('Escape')) { this.screen = 'title'; this.screenT = 0; this.arcade = false; break; }
+          if (keysPressed.has('Enter') && this.screenT > 40) {
+            SFX.confirm();
+            if (this.victor === this.p1) {
+              this.arcadeIdx++;
+              if (this.arcadeIdx >= this.ladder.length) {
+                this.screen = 'arcadewin';
+                this.screenT = 0;
+                VOICE.say('vo_congrats');
+              } else {
+                this.sel2 = this.ladder[this.arcadeIdx];
+                this.stageIdx = this.arcadeIdx % STAGES.length;
+                this.startMatch();
+              }
+            } else {
+              this.startMatch();   // retry same opponent
+            }
+          }
+          break;
+        }
         if (keysPressed.has('Enter')) { this.screen = 'title'; this.screenT = 0; SFX.confirm(); }
         break;
       }
+
+      case 'arcadewin':
+        this.updateFight(true);
+        if (keysPressed.has('Enter') && this.screenT > 60) {
+          this.screen = 'title'; this.screenT = 0; this.arcade = false; SFX.confirm();
+        }
+        break;
     }
 
     if (this.announce) {
@@ -1598,7 +1781,7 @@ class Game {
     }
     this.updateBlood();
     const pad1 = frozen ? { ...EMPTY_PAD } : mergePads(mergeTouchPad(readPad(P1_KEYS)), GAMEPAD.pads[0]);
-    const pad2 = frozen ? { ...EMPTY_PAD }
+    const pad2 = frozen || this.training ? { ...EMPTY_PAD }
       : this.vsCpu ? cpuThink(this.p2, this.p1, this) : mergePads(readPad(P2_KEYS), GAMEPAD.pads[1]);
 
     for (const f of [this.p1, this.p2]) {
@@ -1711,7 +1894,7 @@ class Game {
     // counter-hit: interrupted the defender's own startup
     const counter = !blocked && defender.attack && defender.attack.t < defender.attack.st;
     // combo damage scaling
-    let dmg = def.damage;
+    let dmg = Math.round(def.damage * (attacker.char.power || 1));
     if (!blocked) {
       dmg = Math.max(1, Math.round(dmg * Math.pow(0.9, Math.max(0, this.comboCount(attacker) - 1))));
       if (counter) dmg = Math.round(dmg * 1.3);
@@ -1793,9 +1976,20 @@ class Game {
         const sf = Math.floor(this.frame / 9) % 6;
         c.drawImage(SHOP_IMG, sf * 118, 0, 118, 128, 562, 118, 118 * 2.6, 128 * 2.6);
       }
+      const st = STAGES[this.stageIdx || 0];
+      if (st.moon) {
+        c.save();
+        c.globalCompositeOperation = 'screen';
+        c.globalAlpha = 0.65;
+        dot(c, 170, 95, 60, st.moon);
+        c.globalAlpha = 0.22;
+        dot(c, 170, 95, 85, st.moon);
+        c.restore();
+      }
       // gentle vignette for fighter contrast
       c.fillStyle = 'rgba(0,0,10,0.12)';
       c.fillRect(0, 0, W, H);
+      if (st.tint) { c.fillStyle = st.tint; c.fillRect(0, 0, W, H); }
       if (this.weather === 'rain') { c.fillStyle = 'rgba(14,22,52,0.28)'; c.fillRect(0, 0, W, H); }
       if (this.weather === 'storm') { c.fillStyle = 'rgba(10,16,46,0.4)'; c.fillRect(0, 0, W, H); }
     } else {
@@ -1994,12 +2188,12 @@ class Game {
     c.fillStyle = '#ffd060';
     c.fillText('SELECT MODE', W / 2, 160);
 
-    const opts = ['1 PLAYER  VS  CPU', '2 PLAYERS', 'OPTIONS'];
+    const opts = ['ARCADE', 'VS CPU', '2 PLAYERS', 'TRAINING', 'OPTIONS'];
     c.font = 'bold 30px "Courier New", monospace';
     opts.forEach((o, i) => {
       const sel = this.modeIdx === i;
       c.fillStyle = sel ? '#fff' : 'rgba(255,255,255,0.45)';
-      c.fillText((sel ? '▶ ' : '  ') + o + (sel ? ' ◀' : '  '), W / 2, 260 + i * 60);
+      c.fillText((sel ? '▶ ' : '  ') + o + (sel ? ' ◀' : '  '), W / 2, 215 + i * 52);
     });
     c.font = 'bold 18px "Courier New", monospace';
     c.fillStyle = 'rgba(255,255,255,0.75)';
@@ -2016,7 +2210,7 @@ class Game {
     c.fillText('CHOOSE YOUR FIGHTER', W / 2, 110);
 
     CHARACTERS.forEach((ch, i) => {
-      const cx = W / 2 + (i - (CHARACTERS.length - 1) / 2) * 230;
+      const cx = W / 2 + (i - (CHARACTERS.length - 1) / 2) * 215;
       const cy = 270;
       c.fillStyle = '#16213a';
       c.fillRect(cx - 90, cy - 110, 180, 230);
@@ -2064,6 +2258,7 @@ class Game {
   }
 
   registerCombo(attacker) {
+    this.lastDmgF = this.frame;
     if (this.combo.owner === attacker && this.combo.timer > 0) this.combo.count++;
     else { this.combo.owner = attacker; this.combo.count = 1; }
     this.combo.timer = 55;
@@ -2146,6 +2341,39 @@ class Game {
     c.restore();
   }
 
+  drawStageSelect(c) {
+    this.drawStage(c);
+    c.fillStyle = 'rgba(0,0,0,0.62)';
+    c.fillRect(0, 0, W, H);
+    c.textAlign = 'center';
+    c.font = 'bold 44px Impact, "Arial Black", sans-serif';
+    c.fillStyle = '#ffd060';
+    c.fillText('CHOOSE THE BATTLEGROUND', W / 2, 110);
+    STAGES.forEach((st, i) => {
+      const cx = W / 2 + (i - (STAGES.length - 1) / 2) * 280;
+      const cy = 270;
+      const sel = this.stageIdx === i;
+      // mini preview
+      c.save();
+      c.beginPath();
+      c.rect(cx - 120, cy - 70, 240, 140);
+      c.clip();
+      if (BG_IMG.complete && BG_IMG.naturalWidth) c.drawImage(BG_IMG, cx - 120, cy - 70, 240, 140);
+      if (st.tint) { c.fillStyle = st.tint; c.fillRect(cx - 120, cy - 70, 240, 140); }
+      if (st.moon) { c.globalAlpha = 0.8; dot(c, cx - 75, cy - 40, 18, st.moon); c.globalAlpha = 1; }
+      c.restore();
+      c.strokeStyle = sel ? '#ffd820' : 'rgba(255,255,255,0.35)';
+      c.lineWidth = sel ? 5 : 2;
+      c.strokeRect(cx - 120, cy - 70, 240, 140);
+      c.font = 'bold 19px "Courier New", monospace';
+      c.fillStyle = sel ? '#fff' : 'rgba(255,255,255,0.5)';
+      c.fillText(st.name, cx, cy + 100);
+    });
+    c.font = 'bold 18px "Courier New", monospace';
+    c.fillStyle = 'rgba(255,255,255,0.75)';
+    c.fillText('A/D or ←/→ choose — ENTER to fight', W / 2, 440);
+  }
+
   drawVersus(c) {
     this.drawStage(c);
     c.fillStyle = 'rgba(8,4,18,0.84)';
@@ -2209,6 +2437,19 @@ class Game {
       c.fillText('"' + this.p1.char.taunt + '"', W / 4 + 14, 490);
       c.fillText('"' + this.p2.char.taunt + '"', (W * 3) / 4 - 14, 490);
     }
+  }
+
+  drawHitboxes(c) {
+    c.save();
+    c.lineWidth = 2;
+    for (const f of [this.p1, this.p2]) {
+      const b = f.body;
+      c.strokeStyle = '#30ff70';
+      c.strokeRect(b.x, b.y, b.w, b.h);
+      const hb = f.attackBox();
+      if (hb) { c.strokeStyle = '#ff4040'; c.strokeRect(hb.x, hb.y, hb.w, hb.h); }
+    }
+    c.restore();
   }
 
   drawGhosts(c, f) {
@@ -2302,6 +2543,8 @@ class Game {
     this.drawBolt(c);
     this.drawRain(c);
     this.drawLeaves(c);
+    this.drawFireflies(c);
+    if (this.hitboxView) this.drawHitboxes(c);
     this.drawCallout(c, order[0]);
     this.drawCallout(c, order[1]);
     if (this.floats) {
@@ -2404,6 +2647,42 @@ class Game {
       case 'mode': this.drawMode(c); break;
       case 'options': this.drawStage(c); c.fillStyle = 'rgba(0,0,0,0.55)'; c.fillRect(0, 0, W, H); this.drawOptionsPanel(c); break;
       case 'select': this.drawSelect(c); break;
+      case 'stagesel': this.drawStageSelect(c); break;
+      case 'arcadewin': {
+        this.drawStage(c);
+        c.fillStyle = 'rgba(4,2,12,0.78)';
+        c.fillRect(0, 0, W, H);
+        if (this.p1) {
+          const ch = this.p1.char;
+          const img = SHEETS[ch.id] && SHEETS[ch.id].Idle;
+          if (img && img.complete && ch.face) {
+            c.save();
+            c.imageSmoothingEnabled = false;
+            c.translate(W / 2, 215);
+            c.scale(7 * (ch.baseFacing || 1), 7);
+            c.drawImage(img, ch.face.x, ch.face.y, ch.face.s, ch.face.s, -ch.face.s / 2, -ch.face.s / 2, ch.face.s, ch.face.s);
+            c.restore();
+          }
+          c.textAlign = 'center';
+          c.font = 'bold 64px Impact, "Arial Black", sans-serif';
+          c.lineWidth = 9;
+          c.strokeStyle = '#3a1500';
+          c.strokeText('CHAMPION', W / 2, 400);
+          const grad = c.createLinearGradient(0, 340, 0, 400);
+          grad.addColorStop(0, '#fff0a0');
+          grad.addColorStop(1, '#ff8020');
+          c.fillStyle = grad;
+          c.fillText('CHAMPION', W / 2, 400);
+          c.font = 'bold 22px "Courier New", monospace';
+          c.fillStyle = '#fff';
+          c.fillText(this.p1.char.name + ' HAS CONQUERED THE OAK WOODS', W / 2, 445);
+          if (Math.floor(this.screenT / 30) % 2 === 0) {
+            c.font = 'bold 18px "Courier New", monospace';
+            c.fillText('PRESS ENTER', W / 2, 495);
+          }
+        }
+        break;
+      }
       case 'versus': this.drawVersus(c); break;
       default: this.drawFightScreen(c); break;
     }
@@ -2430,5 +2709,9 @@ function loop(ts) {
   game.draw(ctx);
   requestAnimationFrame(loop);
 window.game = game;   // exposed for debugging/testing
+// PWA: offline cache (https / localhost only)
+if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
+  try { navigator.serviceWorker.register('sw.js'); } catch (e) { /* unsupported */ }
+}
 }
 requestAnimationFrame(loop);
