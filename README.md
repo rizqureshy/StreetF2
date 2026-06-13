@@ -6,6 +6,9 @@ open it in a browser and fight.
 
 ## How to play
 
+Play it installed: the game is a **PWA** — open it once on
+GitHub Pages, add to home screen, and it works fully offline.
+
 Open `index.html` in any modern browser, or serve the folder:
 
 ```bash
@@ -15,10 +18,13 @@ npx http-server .
 
 ## Modes
 
-- **1 Player vs CPU** — fight an AI opponent that approaches, jumps in, blocks, sweeps, and throws fireballs.
-- **2 Players** — local versus on one keyboard.
+- **Arcade** — climb the ladder against every fighter; ONI awaits at the top. Difficulty ramps as you go.
+- **VS CPU** — single match against the AI (Easy/Normal/Hard in Options).
+- **2 Players** — local versus on one keyboard (or two gamepads).
+- **Training** — infinite health and meter, frozen timer, hitbox overlay (B), dummy opponent.
 
-Matches are best of 3 rounds, 99 seconds each. KO your opponent or have more health when time runs out.
+Matches are best of 3 rounds, 99 seconds each. KO your opponent or have more
+health when time runs out — a dead-even timeout triggers **SUDDEN DEATH**.
 
 ## Controls
 
@@ -30,7 +36,14 @@ Matches are best of 3 rounds, 99 seconds each. KO your opponent or have more hea
 | Punch | F | K |
 | Kick | G | L |
 | Block | Hold back (away from opponent) | Hold back |
+| **Super** (full meter) | H (or Punch+Kick) | ; (or K+L) |
+| Throw (close) | Forward + Punch | Forward + Punch |
+| Dash | Double-tap ←/→ | Double-tap ←/→ |
+| Pause | Esc / P | Esc / P |
 | Music on/off | M | M |
+
+**Gamepad** (both players): stick/d-pad move · X slash · A kick · B dash
+slash · Y rising slash · RB wave · RT super · Start pause.
 
 Menus: **Enter** to confirm, **Esc** to go back.
 
@@ -92,8 +105,13 @@ blade work while the announcer counts down — *Ready? … 3 … 2 … 1 … FIG
 Real pixel-art sprite characters with full animation sets
 (idle, run, jump, fall, two attacks, take-hit, death):
 
-- **KAITO** — wandering swordsman in a straw hat, blue energy wave
-- **KENJI** — masked rogue samurai, purple energy wave
+- **KAITO** — wandering swordsman in a straw hat; balanced. Super: *Tempest Barrage* (triple wave)
+- **KENJI** — masked rogue samurai; rushdown. Super: *Thousand Cuts* (multi-hit dash)
+- **RONIN** — a ghost in faded robes; fastest walk, lighter blows. Super: *Hundred Ghosts*
+- **ONI** — the blood demon; slow, hits like a landslide. Arcade final boss. Super: *Massacre*
+
+Three battlegrounds: **Oak Woods** (dusk), **Moonlit Woods** (fireflies, pale
+moon), and **Blood Moon** (red storm, lightning). Each has its own music.
 
 ## Tech notes
 

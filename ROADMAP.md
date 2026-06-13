@@ -4,6 +4,14 @@
 complete, content-rich fighting game. All asset sources verified for license
 and availability where marked ✅.*
 
+> **STATUS (2026-06-13):** Phases A, B, D, E, G **shipped** — gamepad, options/
+> pause/persistence, dashes, super meter & supers, throws, combos, counter-hits,
+> sudden death, full announcer, 4-fighter roster (palette-swap wave), 3 stages
+> with stage select & per-stage music, arcade ladder with boss, training mode,
+> PWA + offline, CI, credits. Remaining: roster wave with NEW sprite packs
+> (Phase C/F art acquisition — blocked on network policy; needs itch.io
+> downloads dropped into assets/ or located GitHub mirrors).
+
 ---
 
 ## 1. Vision
