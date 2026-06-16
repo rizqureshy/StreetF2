@@ -124,9 +124,12 @@ moon), and **Blood Moon** (red storm, lightning). Each has its own music.
 - Hit-freeze frames, screen shake, slow-motion KOs with camera punch-in and
   letterbox bars, and a per-match weather system (leaves / rain / storm).
 - All audio is recorded assets decoded into WebAudio buffers — no synthesis.
-- **PixiJS WebGL post-processing**: the 960x540 game buffer is rendered as a
-  GPU texture with a CRT (scanlines, curvature, vignette) + bloom filter stack.
-  Toggle in Options (OFF / CRT / FULL); auto-falls back to a 2D blit without WebGL.
+- **PixiJS WebGL rendering**: the 960x540 game buffer is a GPU texture (base
+  layer); above it a GPU effects layer adds ambient ember/ash particles,
+  glowing energy projectiles, impact spark bursts, super shockwaves, and
+  dynamic lightning light; the whole composite gets a bloom + CRT (scanlines,
+  curvature, vignette) pass. Toggle in Options (OFF / CRT / FULL); auto-falls
+  back to a plain 2D blit when WebGL is unavailable.
 
 ## Art credits
 

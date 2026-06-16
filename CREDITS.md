@@ -31,6 +31,8 @@ All assets are free / CC0-licensed. Thank you to these creators:
 - **PixiJS** v7.4.2 (https://pixijs.com, MIT) — WebGL post-processing layer.
 - **pixi-filters** v5.3.0 (https://github.com/pixijs/filters, MIT) —
   CRT and AdvancedBloom shaders.
+- GPU effects layer (embers, energy glows, spark bursts, shockwaves,
+  dynamic light) built on PixiJS ParticleContainer + additive blending.
 
 ## Engine
 - Custom HTML5 Canvas + WebAudio game engine. The game renders to a 960x540

@@ -1,5 +1,5 @@
 // Swift Sword service worker — cache-first for full offline play.
-const CACHE = 'swift-sword-v2';
+const CACHE = 'swift-sword-v3';
 const ASSETS = [
   '.', 'index.html', 'style.css', 'game.js', 'manifest.json',
   'vendor/pixi.min.js', 'vendor/pixi-filters.js',
