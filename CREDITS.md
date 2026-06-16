@@ -27,5 +27,12 @@ All assets are free / CC0-licensed. Thank you to these creators:
 - "Honor Bound" — Moonlit Woods battle theme
 - "The Land of the Dead" — Blood Moon battle theme
 
+## Rendering
+- **PixiJS** v7.4.2 (https://pixijs.com, MIT) — WebGL post-processing layer.
+- **pixi-filters** v5.3.0 (https://github.com/pixijs/filters, MIT) —
+  CRT and AdvancedBloom shaders.
+
 ## Engine
-- Custom HTML5 Canvas + WebAudio engine, no dependencies. MIT licensed.
+- Custom HTML5 Canvas + WebAudio game engine. The game renders to a 960x540
+  buffer that PixiJS uploads as a GPU texture for the CRT + bloom pass; a plain
+  2D blit is used when WebGL is unavailable. MIT licensed.

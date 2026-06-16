@@ -19,7 +19,7 @@ const ROUNDS_TO_WIN = 2;
 
 // ---------------- Options (persisted) ----------------
 const OPTIONS = (() => {
-  const def = { musicVol: 9, sfxVol: 10, blood: true, difficulty: 1 };
+  const def = { musicVol: 9, sfxVol: 10, blood: true, difficulty: 1, fx: 2 };
   try {
     if (typeof localStorage !== 'undefined') {
       return Object.assign(def, JSON.parse(localStorage.getItem('swiftsword') || '{}'));
@@ -34,7 +34,14 @@ function saveOptions() {
 }
 
 const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
+// The game renders to an offscreen 960x540 buffer (ctx). The visible canvas is
+// reserved for the PixiJS WebGL post-processing layer; when Pixi is unavailable
+// (no WebGL / headless tests) we blit the buffer straight to it (viewCtx).
+const gameCanvas = document.createElement('canvas');
+gameCanvas.width = W;
+gameCanvas.height = H;
+const ctx = gameCanvas.getContext('2d');
+let viewCtx = null;
 
 // double-click toggles fullscreen
 if (canvas.addEventListener) canvas.addEventListener('dblclick', () => {
@@ -1175,7 +1182,7 @@ class Game {
 
   // ---------------- Pause & Options ----------------
   optionsInput() {
-    const rows = 5; // music, sfx, blood, difficulty, back
+    const rows = 6; // music, sfx, blood, difficulty, fx, back
     if (keysPressed.has('ArrowUp') || keysPressed.has('KeyW')) { this.optIdx = (this.optIdx + rows - 1) % rows; SFX.select(); }
     if (keysPressed.has('ArrowDown') || keysPressed.has('KeyS')) { this.optIdx = (this.optIdx + 1) % rows; SFX.select(); }
     const dec = keysPressed.has('ArrowLeft') || keysPressed.has('KeyA');
@@ -1186,11 +1193,12 @@ class Game {
       if (this.optIdx === 1) OPTIONS.sfxVol = clamp(OPTIONS.sfxVol + d, 0, 10);
       if (this.optIdx === 2) OPTIONS.blood = !OPTIONS.blood;
       if (this.optIdx === 3) OPTIONS.difficulty = clamp(OPTIONS.difficulty + d, 0, 2);
+      if (this.optIdx === 4) { OPTIONS.fx = clamp(OPTIONS.fx + d, 0, 2); if (typeof applyFX === 'function') applyFX(); }
       if (musicGain && !MUSIC.muted) musicGain.gain.value = 0.9 * (OPTIONS.musicVol / 10);
       saveOptions();
       SFX.select();
     }
-    if (keysPressed.has('Escape') || (keysPressed.has('Enter') && this.optIdx === 4)) {
+    if (keysPressed.has('Escape') || (keysPressed.has('Enter') && this.optIdx === 5)) {
       SFX.confirm();
       return true;  // exit options
     }
@@ -1198,11 +1206,11 @@ class Game {
   }
 
   optionsTap(p) {
-    const top = 165, rowH = 56;
-    const row = Math.floor((p.y - top + 20) / rowH);
-    if (row >= 0 && row < 5) {
+    const top = 165, rowH = 50;
+    const row = Math.floor((p.y - top + 18) / rowH);
+    if (row >= 0 && row < 6) {
       this.optIdx = row;
-      if (row === 4) { keysPressed.add('Enter'); return; }
+      if (row === 5) { keysPressed.add('Enter'); return; }
       keysPressed.add(p.x < W / 2 ? 'ArrowLeft' : 'ArrowRight');
     }
   }
@@ -1223,11 +1231,12 @@ class Game {
       ['SFX VOLUME', OPTIONS.sfxVol + '/10'],
       ['BLOOD', OPTIONS.blood ? 'ON' : 'OFF'],
       ['DIFFICULTY', ['EASY', 'NORMAL', 'HARD'][OPTIONS.difficulty]],
+      ['VISUAL FX', ['OFF', 'CRT', 'FULL'][OPTIONS.fx]],
       ['BACK', ''],
     ];
-    c.font = 'bold 22px "Courier New", monospace';
+    c.font = 'bold 21px "Courier New", monospace';
     rows.forEach(([label, val], i) => {
-      const y = 195 + i * 56;
+      const y = 188 + i * 50;
       const sel = this.optIdx === i;
       c.fillStyle = sel ? '#ffffff' : 'rgba(255,255,255,0.45)';
       c.textAlign = 'left';
@@ -2691,27 +2700,77 @@ class Game {
   }
 }
 
+// ---------------- PixiJS post-processing layer ----------------
+// The 960x540 game buffer becomes a GPU texture; a CRT + bloom filter stack is
+// applied on the way to the screen. Falls back to a plain 2D blit when WebGL or
+// Pixi is unavailable (older browsers, headless tests) so the game always runs.
+const FX = { app: null, tex: null, sprite: null, crt: null, bloom: null, on: false };
+function initPixi() {
+  if (typeof PIXI === 'undefined' || !canvas.addEventListener) return false;
+  try {
+    const big = !(typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches);
+    const rw = big ? 1920 : 1280, rh = big ? 1080 : 720;
+    FX.app = new PIXI.Application({ view: canvas, width: rw, height: rh,
+      backgroundColor: 0x000000, antialias: false, powerPreference: 'high-performance' });
+    FX.app.ticker.stop();
+    FX.tex = PIXI.Texture.from(gameCanvas);
+    FX.tex.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
+    FX.sprite = new PIXI.Sprite(FX.tex);
+    FX.sprite.width = rw;
+    FX.sprite.height = rh;
+    FX.app.stage.addChild(FX.sprite);
+    const F = PIXI.filters;
+    FX.bloom = new F.AdvancedBloomFilter({ threshold: 0.5, bloomScale: 0.85, brightness: 1, blur: 5, quality: 6 });
+    FX.crt = new F.CRTFilter({ curvature: 2, lineWidth: 2.4, lineContrast: 0.2,
+      noise: 0.07, noiseSize: 1, vignetting: 0.34, vignettingAlpha: 0.72, vignettingBlur: 0.4 });
+    applyFX();
+    return true;
+  } catch (e) { return false; }
+}
+function applyFX() {
+  if (!FX.sprite) return;
+  const list = [];
+  if (OPTIONS.fx >= 2) list.push(FX.bloom);
+  if (OPTIONS.fx >= 1) list.push(FX.crt);
+  FX.sprite.filters = list.length ? list : null;
+}
+
 // ---------------- Main loop ----------------
 const game = new Game();
-
+window.game = game;   // exposed for debugging/testing
 let last = 0, acc = 0;
 const STEP = 1000 / 60;
+let pixiTried = false;
+
+function render() {
+  if (!pixiTried) { pixiTried = true; FX.on = initPixi(); }
+  ctx.imageSmoothingEnabled = false;   // keep pixel art crisp
+  game.draw(ctx);
+  if (FX.on) {
+    if (FX.crt && OPTIONS.fx >= 1) FX.crt.time += 0.6;
+    FX.tex.update();
+    FX.app.render();
+  } else {
+    if (!viewCtx) { try { viewCtx = canvas.getContext('2d'); } catch (e) { viewCtx = null; } }
+    if (viewCtx) {
+      viewCtx.imageSmoothingEnabled = false;
+      viewCtx.drawImage(gameCanvas, 0, 0, canvas.width, canvas.height);
+    }
+  }
+}
 
 function loop(ts) {
   if (!last) last = ts;
   acc += Math.min(100, ts - last);
   last = ts;
-  while (acc >= STEP) {
-    game.update();
-    acc -= STEP;
-  }
-  ctx.imageSmoothingEnabled = false;   // keep pixel art crisp
-  game.draw(ctx);
+  while (acc >= STEP) { game.update(); acc -= STEP; }
+  render();
   requestAnimationFrame(loop);
-window.game = game;   // exposed for debugging/testing
-// PWA: offline cache (https / localhost only)
-if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
-  try { navigator.serviceWorker.register('sw.js'); } catch (e) { /* unsupported */ }
 }
+
+// PWA: offline cache (https / localhost only)
+if (typeof navigator !== 'undefined' && navigator.serviceWorker &&
+    typeof location !== 'undefined' && location.protocol && location.protocol.indexOf('http') === 0) {
+  try { navigator.serviceWorker.register('sw.js'); } catch (e) { /* unsupported */ }
 }
 requestAnimationFrame(loop);
