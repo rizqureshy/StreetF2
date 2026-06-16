@@ -862,6 +862,7 @@ class Fighter {
       this.meter = 0;
       this.startAttack(this.char.superMove);
       game.superFlash = 26;
+      fxShock(this.x, this.y - 110, this.char.fireball);
       game.slowmo = Math.max(game.slowmo, 18);
       game.shake = Math.max(game.shake, 6);
       SFX.specialHit();
@@ -1834,6 +1835,7 @@ class Game {
           : readPad(P2_KEYS);
         const blocked = target.canBlock(pad);
         this.sparks.push(new HitSpark(pr.x, pr.y, blocked));
+        fxSpark(pr.x, pr.y, pr.owner.char.fireball, blocked ? 10 : 24);
         target.receiveHit(10, 7, false, pr.owner.x, blocked);
         if (blocked) target.hp = Math.max(1, target.hp - 2); // chip damage
         else {
@@ -1891,6 +1893,7 @@ class Game {
       this.shake = 9;
       this.spawnBlood(defender.x, defender.y - 120, dir, 14);
       this.sparks.push(new HitSpark(defender.x, defender.y - 120, false));
+      fxSpark(defender.x, defender.y - 120, '#ffaa55', 18);
       this.registerCombo(attacker);
       this.checkKO();
       return;
@@ -1900,7 +1903,7 @@ class Game {
     const sparkX = (Math.max(hb.x, defender.body.x) + Math.min(hb.x + hb.w, defender.body.x + defender.body.w)) / 2;
     const sparkY = hb.y + hb.h / 2;
     this.sparks.push(new HitSpark(sparkX, sparkY, blocked));
-    // counter-hit: interrupted the defender's own startup
+    fxSpark(sparkX, sparkY, blocked ? '#88bbff' : (def.isSuper ? attacker.char.fireball : '#ffdd66'), blocked ? 8 : (def.isSuper ? 26 : 16));
     const counter = !blocked && defender.attack && defender.attack.t < defender.attack.st;
     // combo damage scaling
     let dmg = Math.round(def.damage * (attacker.char.power || 1));
@@ -2700,16 +2703,199 @@ class Game {
   }
 }
 
-// ---------------- PixiJS post-processing layer ----------------
-// The 960x540 game buffer becomes a GPU texture; a CRT + bloom filter stack is
-// applied on the way to the screen. Falls back to a plain 2D blit when WebGL or
-// Pixi is unavailable (older browsers, headless tests) so the game always runs.
-const FX = { app: null, tex: null, sprite: null, crt: null, bloom: null, on: false };
+// ---------------- PixiJS rendering + GPU effects layer ----------------
+// The 960x540 game buffer becomes a GPU texture (base layer); above it sits a
+// particle/light effects layer; the whole composite gets a bloom + CRT pass.
+// Falls back to a plain 2D blit when WebGL/Pixi is unavailable (old browsers,
+// headless tests) so the game always runs.
+const FX = { app: null, tex: null, sprite: null, crt: null, bloom: null, on: false, rw: 1920, rh: 1080 };
+
+// Soft radial-gradient dot texture for additive particles/lights.
+function makeDotTexture(size) {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = size;
+  const x = cv.getContext('2d');
+  const g = x.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.35, 'rgba(255,255,255,0.7)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g;
+  x.fillRect(0, 0, size, size);
+  return PIXI.Texture.from(cv);
+}
+
+// GPU effects: ember/ash ambience, impact spark bursts, energy-projectile
+// glows, lightning light, super shockwaves. All additive, bloom-fed.
+const GFX = {
+  enabled: false, layer: null, dot: null, ring: null,
+  parts: [], pool: 520, sx: 2, sy: 2,
+  glows: [], lightS: null, flashS: null, rings: [], emberAcc: 0,
+  init(app, rw, rh) {
+    this.sx = rw / W; this.sy = rh / H;
+    this.dot = makeDotTexture(64);
+    this.layer = new PIXI.Container();
+    this.layer.sortableChildren = false;
+    // dynamic light (lightning / super), drawn lowest
+    this.lightS = new PIXI.Sprite(this.dot);
+    this.lightS.anchor.set(0.5); this.lightS.blendMode = PIXI.BLEND_MODES.ADD;
+    this.lightS.alpha = 0; this.layer.addChild(this.lightS);
+    // particle pool (sparks + embers)
+    this.pc = new PIXI.ParticleContainer(this.pool + 40, { position: true, scale: true, tint: true, alpha: true });
+    this.pc.blendMode = PIXI.BLEND_MODES.ADD;
+    this.layer.addChild(this.pc);
+    for (let i = 0; i < this.pool; i++) {
+      const s = new PIXI.Sprite(this.dot);
+      s.anchor.set(0.5); s.visible = false;
+      this.pc.addChild(s);
+      this.parts.push({ s, life: 0, max: 1, x: 0, y: 0, vx: 0, vy: 0, grav: 0, size: 1, ember: false });
+    }
+    // projectile energy glows
+    for (let i = 0; i < 6; i++) {
+      const s = new PIXI.Sprite(this.dot);
+      s.anchor.set(0.5); s.blendMode = PIXI.BLEND_MODES.ADD; s.visible = false;
+      this.layer.addChild(s);
+      this.glows.push(s);
+    }
+    // expanding shock rings
+    for (let i = 0; i < 4; i++) {
+      const g = new PIXI.Graphics();
+      g.blendMode = PIXI.BLEND_MODES.ADD; g.visible = false;
+      this.layer.addChild(g);
+      this.rings.push({ g, t: 0, max: 0, x: 0, y: 0, color: 0xffffff });
+    }
+    // full-screen additive flash
+    this.flashS = new PIXI.Sprite(PIXI.Texture.WHITE);
+    this.flashS.width = rw; this.flashS.height = rh;
+    this.flashS.blendMode = PIXI.BLEND_MODES.ADD; this.flashS.alpha = 0;
+    this.layer.addChild(this.flashS);
+    app.stage.addChild(this.layer);
+    this.enabled = true;
+  },
+  free() { for (const p of this.parts) if (p.life <= 0) return p; return null; },
+  burst(gx, gy, color, n, spread, speed, grav, life, size) {
+    if (!this.enabled) return;
+    const tint = typeof color === 'string' ? parseInt(color.slice(1), 16) : color;
+    for (let i = 0; i < n; i++) {
+      const p = this.free();
+      if (!p) break;
+      const a = Math.random() * Math.PI * 2;
+      const sp = speed * (0.4 + Math.random() * 0.6);
+      p.x = gx; p.y = gy;
+      p.vx = Math.cos(a) * sp * (spread || 1);
+      p.vy = Math.sin(a) * sp - (grav > 0 ? Math.random() * 2 : 0);
+      p.grav = grav; p.max = p.life = life * (0.6 + Math.random() * 0.6);
+      p.size = size * (0.6 + Math.random() * 0.8); p.ember = false;
+      p.s.tint = tint; p.s.visible = true;
+    }
+  },
+  spark(gx, gy, color, n) { this.burst(gx, gy, color, n || 14, 1, 7, 0.35, 16, 0.5); },
+  ember(gx, gy, color) {
+    const p = this.free();
+    if (!p) return;
+    p.x = gx; p.y = gy; p.vx = (Math.random() - 0.5) * 0.6; p.vy = -0.5 - Math.random() * 0.9;
+    p.grav = -0.01; p.max = p.life = 120 + Math.random() * 120; p.size = 0.18 + Math.random() * 0.22;
+    p.ember = true; p.s.tint = color; p.s.visible = true;
+  },
+  shock(gx, gy, color) {
+    if (!this.enabled) return;
+    const tint = typeof color === 'string' ? parseInt(color.slice(1), 16) : color;
+    this.burst(gx, gy, color, 30, 1.2, 11, 0.15, 22, 0.7);
+    for (const r of this.rings) {
+      if (r.t > 0) continue;
+      r.t = r.max = 22; r.x = gx; r.y = gy; r.color = tint;
+      break;
+    }
+    this.lightAt(gx, gy, 1.0, tint, 18);
+  },
+  lightAt(gx, gy, alpha, tint, ttl) {
+    if (!this.lightS) return;
+    this.lightS.x = gx * this.sx; this.lightS.y = gy * this.sy;
+    this.lightS.tint = tint; this.lightS.alpha = alpha; this.lightS._ttl = ttl; this.lightS._a0 = alpha;
+    const r = Math.max(this.rw, this.rh) * 1.4;
+    this.lightS.width = this.lightS.height = r;
+  },
+  flash(alpha, tint) {
+    if (!this.flashS) return;
+    this.flashS.tint = typeof tint === 'string' ? parseInt(tint.slice(1), 16) : (tint || 0xffffff);
+    this.flashS.alpha = Math.max(this.flashS.alpha, alpha);
+  },
+  update(g) {
+    if (!this.enabled) return;
+    // ambient embers (denser/redder on the blood-moon stage)
+    const inFight = g.screen === 'fight' || g.screen === 'intro' || g.screen === 'roundend';
+    if (inFight && !g.paused) {
+      const st = STAGES[g.stageIdx || 0];
+      const rate = st && st.id === 'bloodmoon' ? 0.9 : 0.35;
+      this.emberAcc += rate;
+      while (this.emberAcc >= 1) {
+        this.emberAcc -= 1;
+        const col = st && st.id === 'bloodmoon' ? 0xff5530 : (st && st.id === 'night' ? 0x90c0ff : 0xffb060);
+        this.ember(Math.random() * W, GROUND + Math.random() * 70, col);
+      }
+    }
+    // particle integration
+    for (const p of this.parts) {
+      if (p.life <= 0) continue;
+      p.life--;
+      p.vy += p.grav;
+      p.x += p.vx; p.y += p.vy;
+      if (p.ember) { p.vx += (Math.random() - 0.5) * 0.12; }
+      if (p.life <= 0) { p.s.visible = false; continue; }
+      p.s.x = p.x * this.sx; p.s.y = p.y * this.sy;
+      const lifeF = p.life / p.max;
+      const sc = (p.ember ? p.size : p.size * (0.4 + lifeF * 0.8));
+      p.s.scale.set(sc);
+      p.s.alpha = p.ember ? Math.min(0.8, lifeF * 1.5) : lifeF;
+    }
+    // energy glow follows live projectiles
+    let gi = 0;
+    for (const pr of g.projectiles || []) {
+      if (!pr.alive || gi >= this.glows.length) continue;
+      const s = this.glows[gi++];
+      s.visible = true;
+      s.x = pr.x * this.sx; s.y = pr.y * this.sy;
+      s.tint = parseInt(pr.owner.char.fireball.slice(1), 16);
+      const pulse = 1 + 0.18 * Math.sin(g.frame * 0.4 + pr.t);
+      s.width = s.height = 150 * pulse;
+      s.alpha = 0.85;
+    }
+    for (; gi < this.glows.length; gi++) this.glows[gi].visible = false;
+    // lightning illuminates the scene
+    const L = g.lightning;
+    if (L && L.boltT > 0 && L.bolt) this.lightAt(L.bolt[0][0], 120, Math.min(0.8, L.boltT / 9), 0xbcd0ff, 0);
+    if (L && L.flash > 0) this.flash(Math.min(0.4, L.flash / 16), 0xcfe0ff);
+    // decay light
+    if (this.lightS.alpha > 0) {
+      if (this.lightS._ttl > 0) { this.lightS._ttl--; }
+      else this.lightS.alpha *= 0.86;
+      if (this.lightS.alpha < 0.02) this.lightS.alpha = 0;
+    }
+    // decay flash
+    if (this.flashS.alpha > 0) { this.flashS.alpha *= 0.8; if (this.flashS.alpha < 0.02) this.flashS.alpha = 0; }
+    // expanding rings
+    for (const r of this.rings) {
+      if (r.t <= 0) { r.g.visible = false; continue; }
+      r.t--;
+      const f = 1 - r.t / r.max;
+      r.g.clear();
+      r.g.lineStyle(7 * (1 - f), r.color, 1 - f);
+      r.g.drawCircle(0, 0, 20 + f * 230);
+      r.g.x = r.x * this.sx; r.g.y = r.y * this.sy;
+      r.g.alpha = 1 - f;
+      r.g.visible = true;
+    }
+  },
+};
+// safe global hooks (no-ops when Pixi/GFX off — keeps headless tests clean)
+function fxSpark(x, y, color, n) { if (window.GFX && window.GFX.enabled) window.GFX.spark(x, y, color, n); }
+function fxShock(x, y, color) { if (window.GFX && window.GFX.enabled) window.GFX.shock(x, y, color); }
+
 function initPixi() {
   if (typeof PIXI === 'undefined' || !canvas.addEventListener) return false;
   try {
     const big = !(typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches);
     const rw = big ? 1920 : 1280, rh = big ? 1080 : 720;
+    FX.rw = rw; FX.rh = rh;
     FX.app = new PIXI.Application({ view: canvas, width: rw, height: rh,
       backgroundColor: 0x000000, antialias: false, powerPreference: 'high-performance' });
     FX.app.ticker.stop();
@@ -2719,20 +2905,26 @@ function initPixi() {
     FX.sprite.width = rw;
     FX.sprite.height = rh;
     FX.app.stage.addChild(FX.sprite);
+    GFX.init(FX.app, rw, rh);
+    window.GFX = GFX;
     const F = PIXI.filters;
     FX.bloom = new F.AdvancedBloomFilter({ threshold: 0.5, bloomScale: 0.85, brightness: 1, blur: 5, quality: 6 });
     FX.crt = new F.CRTFilter({ curvature: 2, lineWidth: 2.4, lineContrast: 0.2,
       noise: 0.07, noiseSize: 1, vignetting: 0.34, vignettingAlpha: 0.72, vignettingBlur: 0.4 });
+    // filters on the whole stage so particles & lights bloom too
+    FX.app.stage.filterArea = new PIXI.Rectangle(0, 0, rw, rh);
     applyFX();
     return true;
   } catch (e) { return false; }
 }
 function applyFX() {
-  if (!FX.sprite) return;
+  if (!FX.app) return;
   const list = [];
   if (OPTIONS.fx >= 2) list.push(FX.bloom);
   if (OPTIONS.fx >= 1) list.push(FX.crt);
-  FX.sprite.filters = list.length ? list : null;
+  FX.app.stage.filters = list.length ? list : null;
+  if (GFX.layer) GFX.layer.visible = OPTIONS.fx >= 1;
+  GFX.enabled = !!GFX.layer && OPTIONS.fx >= 1;
 }
 
 // ---------------- Main loop ----------------
@@ -2748,6 +2940,7 @@ function render() {
   game.draw(ctx);
   if (FX.on) {
     if (FX.crt && OPTIONS.fx >= 1) FX.crt.time += 0.6;
+    if (GFX.enabled) GFX.update(game);
     FX.tex.update();
     FX.app.render();
   } else {
