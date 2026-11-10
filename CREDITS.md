@@ -1,40 +1,51 @@
-# Swift Sword — Asset Credits
+# Swift Sword — Credits
 
-All assets are free / CC0-licensed. Thank you to these creators:
+## Generated for this game (via Higgsfield)
 
-## Character sprites
-- **"Martial Hero"** and **"Martial Hero 2"** by **LuizMelo**
-  (https://luizmelo.itch.io/martial-hero, https://luizmelo.itch.io/martial-hero-2)
-  — free to use in any project. KAITO and KENJI use these sheets directly;
-  RONIN and ONI are runtime palette tints of the same art.
+Created with the Higgsfield generation platform specifically for Swift Sword:
 
-## Stage art
-- **"Oak Woods"** environment pack by **brullov** (https://brullov.itch.io/oak-woods)
-  — free for commercial and non-commercial use. All three stages are
-  lighting/tint variants of this environment.
+- **Fighter concept art** (KAITO, AKANE, KUROGANE) — GPT Image.
+- **Fighter 3D meshes and PBR textures** — Tripo H3.1 image-to-3D from the
+  concept art. KAITO and KUROGANE were rigged with Meshy auto-rigging; AKANE
+  was rigged with this repository's own `tools/autorig.mjs`. SHURA is a
+  runtime variant of KUROGANE.
+- **Stage backdrops** (Moonlit Shrine, Burning Keep, Storm Grove) and
+  **ground textures** — GPT Image.
+- **Music** — "title" and "duel" tracks, ElevenLabs Music.
 
-## Sound effects
+## Animation
+
+- **Universal Animation Library 1 & 2** by **Quaternius**
+  (https://quaternius.com, CC0). Clips are retargeted to each fighter's
+  skeleton and baked into the character files by `tools/`.
+
+## Sound effects and announcer
+
 - **Kenney** audio packs (https://kenney.nl, CC0): Impact Sounds, RPG Audio,
-  Sci-Fi Sounds, UI Audio.
+  Sci-Fi Sounds, UI Audio, Voiceover Pack.
 
-## Announcer voice
-- **Kenney Voiceover Packs** (https://kenney.nl, CC0): countdown, FIGHT,
-  rounds, combo, flawless victory, sudden death, menus.
+## Additional music (FreePD.com, CC0)
 
-## Music (FreePD.com, CC0)
-- "Coy Koi" — menu theme
-- "Ancient Rite" — Oak Woods battle theme
-- "Honor Bound" — Moonlit Woods battle theme
-- "The Land of the Dead" — Blood Moon battle theme
+- "Honor Bound" — Storm Grove
+- "The Land of the Dead" — Burning Keep
+- "Coy Koi", "Ancient Rite" — classic edition
 
-## Rendering
-- **PixiJS** v7.4.2 (https://pixijs.com, MIT) — WebGL post-processing layer.
-- **pixi-filters** v5.3.0 (https://github.com/pixijs/filters, MIT) —
-  CRT and AdvancedBloom shaders.
-- GPU effects layer (embers, energy glows, spark bursts, shockwaves,
-  dynamic light) built on PixiJS ParticleContainer + additive blending.
+## Fonts (SIL Open Font License 1.1)
 
-## Engine
-- Custom HTML5 Canvas + WebAudio game engine. The game renders to a 960x540
-  buffer that PixiJS uploads as a GPU texture for the CRT + bloom pass; a plain
-  2D blit is used when WebGL is unavailable. MIT licensed.
+- **Shippori Mincho B1** by FONTDASU — interface lettering.
+- **Yuji Boku** by Kinuta Font Factory — brush kanji (subset).
+  Licence texts are in `assets/fonts/`.
+
+## Libraries
+
+- **three.js** r187 (https://threejs.org, MIT) — rendering, vendored under
+  `vendor/three/` with its licence.
+- Asset pipeline only (not shipped): glTF-Transform, meshoptimizer, sharp,
+  Playwright.
+
+## Classic edition (`classic/`)
+
+- **"Martial Hero" 1 & 2** sprites by **LuizMelo**
+  (https://luizmelo.itch.io) — free to use.
+- **"Oak Woods"** environment by **brullov** (https://brullov.itch.io/oak-woods).
+- **PixiJS** v7.4.2 and **pixi-filters** v5.3.0 (MIT).

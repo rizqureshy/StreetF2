@@ -1,21 +1,138 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Swift Sword</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="assets/icon-192.png">
-  <meta name="theme-color" content="#0a0a12">
-  <meta name="apple-mobile-web-app-capable" content="yes">
+<meta charset="utf-8">
+<title>Swift Sword</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="description" content="Swift Sword — a cinematic 3D samurai fighting game that runs in your browser.">
+<meta name="theme-color" content="#07080d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<link rel="preload" href="assets/fonts/shippori-mincho-b1-800.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/yuji-boku-kanji.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
 </head>
 <body>
-  <div id="wrap">
-    <canvas id="game" width="960" height="540"></canvas>
+<canvas id="view" aria-label="Swift Sword game view"></canvas>
+
+<div id="ui">
+  <div class="bars" id="bars"><i></i><i></i></div>
+
+  <!-- loading -->
+  <section id="loading" class="screen on">
+    <div class="logo small"><span class="kanji">疾剣</span><h1>SWIFT SWORD</h1></div>
+    <div class="loadbar"><i id="loadfill"></i></div>
+    <p id="loadtext">Sharpening blades…</p>
+  </section>
+
+  <!-- title -->
+  <section id="title" class="screen">
+    <div class="logo"><span class="kanji">疾剣</span><h1>SWIFT SWORD</h1><p class="tag">One cut decides everything</p></div>
+    <p class="press" id="press">PRESS ANY KEY</p>
+    <p class="fine">Characters, stages &amp; score generated with Higgsfield · three.js</p>
+  </section>
+
+  <!-- generic list menu (main menu, pause, options) -->
+  <section id="menu" class="screen">
+    <div class="menuwrap">
+      <h2 id="menutitle"></h2>
+      <ul id="menulist"></ul>
+      <p class="hint" id="menuhint"></p>
+    </div>
+  </section>
+
+  <!-- character select -->
+  <section id="select" class="screen">
+    <header><button class="back" data-act="back" aria-label="Back">‹</button><h2 id="seltitle">CHOOSE YOUR FIGHTER</h2></header>
+    <aside class="info left" id="info0"></aside>
+    <aside class="info right" id="info1"></aside>
+    <div class="roster" id="roster"></div>
+    <button class="confirm" id="selconfirm">CONFIRM</button>
+  </section>
+
+  <!-- stage select -->
+  <section id="stagesel" class="screen">
+    <header><button class="back" data-act="back" aria-label="Back">‹</button><h2>CHOOSE THE GROUND</h2></header>
+    <div class="stages" id="stages"></div>
+  </section>
+
+  <!-- versus splash -->
+  <section id="versus" class="screen">
+    <div class="vsname left" id="vs0"></div>
+    <div class="vsmark"><span class="kanji">対</span><b>VS</b></div>
+    <div class="vsname right" id="vs1"></div>
+    <div class="vsstage" id="vsstage"></div>
+  </section>
+
+  <!-- in-fight HUD -->
+  <section id="hud" class="screen">
+    <div class="side p1">
+      <div class="portrait"><img id="por0" alt=""></div>
+      <div class="life"><div class="ghost" id="ghost0"></div><div class="fill" id="life0"></div></div>
+      <div class="under"><span class="name" id="name0"></span><span class="pips" id="pips0"></span></div>
+    </div>
+    <div class="clock"><span id="timer">99</span><small id="roundlabel">ROUND 1</small></div>
+    <div class="side p2">
+      <div class="portrait"><img id="por1" alt=""></div>
+      <div class="life"><div class="ghost" id="ghost1"></div><div class="fill" id="life1"></div></div>
+      <div class="under"><span class="name" id="name1"></span><span class="pips" id="pips1"></span></div>
+    </div>
+    <div class="meter p1"><div class="mfill" id="meter0"></div><span id="mlabel0">SPIRIT</span></div>
+    <div class="meter p2"><div class="mfill" id="meter1"></div><span id="mlabel1">SPIRIT</span></div>
+    <div class="combo p1" id="combo0"></div>
+    <div class="combo p2" id="combo1"></div>
+    <div class="callout p1" id="callout0"></div>
+    <div class="callout p2" id="callout1"></div>
+    <div class="tag" id="modetag"></div>
+    <button class="pausebtn" id="pausebtn" aria-label="Pause">Ⅱ</button>
+  </section>
+
+  <div id="announce"></div>
+  <div id="cards"></div>
+  <div id="floats"></div>
+
+  <!-- match result -->
+  <section id="result" class="screen">
+    <div class="resultbox">
+      <span class="kanji" id="reskanji">勝</span>
+      <h2 id="restitle"></h2>
+      <p class="quote" id="resquote"></p>
+      <ul id="reslist"></ul>
+    </div>
+  </section>
+
+  <!-- help / move list -->
+  <section id="help" class="screen">
+    <div class="helpbox">
+      <header><button class="back" data-act="back" aria-label="Back">‹</button><h2>THE WAY OF THE BLADE</h2></header>
+      <div id="helpbody"></div>
+    </div>
+  </section>
+
+  <!-- touch controls -->
+  <div id="touch">
+    <div id="stick"><i id="knob"></i></div>
+    <div id="tbtns">
+      <button data-b="super" class="tb sp">気</button>
+      <button data-b="wave" class="tb sm">WAVE</button>
+      <button data-b="rising" class="tb sm">RISE</button>
+      <button data-b="dash" class="tb sm">DASH</button>
+      <button data-b="light" class="tb big">SLASH</button>
+      <button data-b="heavy" class="tb big hv">CLEAVE</button>
+    </div>
   </div>
-  <script src="vendor/pixi.min.js"></script>
-  <script src="vendor/pixi-filters.js"></script>
-  <script src="game.js"></script>
+
+  <div id="rotate"><span class="kanji">回</span><p>Turn your device sideways for the full stage.</p></div>
+  <div id="fatal"></div>
+</div>
+
+<script type="module" src="src/main.js"></script>
 </body>
 </html>

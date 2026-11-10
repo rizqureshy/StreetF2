@@ -1,0 +1,14 @@
+{
+  "name": "swift-sword-tools",
+  "private": true,
+  "type": "module",
+  "description": "Offline asset pipeline for Swift Sword (not needed to play or deploy).",
+  "dependencies": {
+    "@gltf-transform/core": "^4",
+    "@gltf-transform/extensions": "^4",
+    "@gltf-transform/functions": "^4",
+    "meshoptimizer": "^0.22",
+    "playwright": "^1",
+    "sharp": "^0.33"
+  }
+}

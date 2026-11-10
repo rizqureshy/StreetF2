@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>bake</title>
+<script type="importmap">{"imports":{"three":"../vendor/three/three.module.min.js","three/addons/":"../vendor/three/addons/"}}</script>
+</head><body>
+<script type="module">
+// Build-time tool: retargets the CC0 animation libraries onto one rigged
+// character and hands the baked tracks (plus the sword mount frame) to
+// build_character.mjs through window.bakeAll().
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { createRetargeter, listBones } from './retarget.js';
+const P = new URLSearchParams(location.search);
+const loader = new GLTFLoader();
+const load = url => new Promise((res, rej) => loader.load(url, res, undefined, rej));
+const libs = await Promise.all((P.get('libs') || '/tools/work/ual1.glb,/tools/work/ual2.glb').split(',').map(load));
+const g = await load(P.get('model'));
+const target = g.scene; target.updateMatrixWorld(true);
+const clipSrc = {};
+const rts = libs.map(lib => {
+  const rest = lib.animations.find(c => c.name === 'A_TPose');
+  const rt = createRetargeter(lib.scene, target, { restClip: rest });
+  for (const c of lib.animations) if (!clipSrc[c.name]) clipSrc[c.name] = { clip: c, rt };
+  return rt;
+});
+function swordMount(rt, lib) {
+  const find = re => { let hit = null; lib.scene.traverse(o => { if (!hit && o.isBone && re.test(o.name.toLowerCase())) hit = o; }); return hit; };
+  const mixer = new THREE.AnimationMixer(lib.scene);
+  const a = mixer.clipAction(lib.animations.find(c => c.name === 'A_TPose')); a.play(); mixer.setTime(0); lib.scene.updateMatrixWorld(true);
+  const wp = o => o.getWorldPosition(new THREE.Vector3());
+  const hand = rt.src.handR, fore = rt.src.lowerArmR;
+  const idx = find(/index_?0?1_?r/), pinky = find(/pinky_?0?1_?r/), mid = find(/middle_?0?1_?r/);
+  const foreDir = wp(hand).sub(wp(fore)).normalize();
+  const blade = wp(idx).sub(wp(pinky)); blade.addScaledVector(foreDir, -blade.dot(foreDir)).normalize();
+  const palmN = new THREE.Vector3().crossVectors(foreDir, blade).normalize();
+  const grip = wp(mid).sub(wp(hand));
+  const srcFore = wp(hand).distanceTo(wp(fore));
+  a.stop(); mixer.uncacheRoot(lib.scene);
+  const q = rt.align.handR.clone().multiply(rt.tgtRest.handR.q).invert();
+  const k = rt.tgtRest.handR.p.distanceTo(rt.tgtRest.lowerArmR.p) / srcFore;
+  const r = v => v.toArray().map(n => +n.toFixed(5));
+  return { bone: rt.tgt.handR.name, blade: r(blade.clone().applyQuaternion(q)), edge: r(foreDir.clone().applyQuaternion(q)),
+    palm: r(palmN.clone().applyQuaternion(q)), grip: r(grip.clone().multiplyScalar(k).applyQuaternion(q)),
+    boneScale: +rt.tgt.handR.getWorldScale(new THREE.Vector3()).x.toFixed(6) };
+}
+// manifest: [name, { src, t0, t1, turn }]
+window.bakeAll = manifest => {
+  const out = { fps: 30, mount: swordMount(rts[0], libs[0]), hips: rts[0].tgt.hips.name, clips: {} };
+  const bones = listBones(target).map(b => b.name);
+  out.bones = bones;
+  out.height = new THREE.Box3().setFromObject(target).max.y;
+  for (const [name, m] of manifest) {
+    const s = clipSrc[m.src || name];
+    if (!s) { out.clips[name] = null; continue; }
+    const clip = s.rt.bake(s.clip, { rootMotion: 'all', name, turn: m.turn || 0, trimStart: m.t0 || 0, trimEnd: m.t1 ?? s.clip.duration });
+    const rec = { duration: +clip.duration.toFixed(4), frames: clip.tracks[0].times.length, q: {}, hips: null };
+    for (const tr of clip.tracks) {
+      const bone = tr.name.split('.')[0];
+      const vals = Array.from(tr.values, v => +v.toFixed(5));
+      if (tr.name.endsWith('.quaternion')) rec.q[bone] = vals; else rec.hips = vals;
+    }
+    out.clips[name] = rec;
+  }
+  return out;
+};
+window.__ready = true;
+</script></body></html>
