@@ -23,6 +23,20 @@ export function resolveQuality() {
   return coarse ? QUALITY.medium : QUALITY.high;
 }
 
+// HDR guard. A single over-range pixel (a specular glint on a blade or the wet
+// floor can exceed the half-float range, i.e. +Infinity) is smeared across the
+// frame by the bloom blur and then becomes NaN in tone mapping, which blanks
+// the picture to black. Clamp to a sane range and drop invalid values first.
+// (The comparisons are false for NaN, so those fall through to 0.)
+const HDR_LIMIT = '24.0';
+const SANITIZE = `vec3 sanitize(vec3 c){ return vec3(c.r > 0.0 ? min(c.r, ${HDR_LIMIT}) : 0.0, c.g > 0.0 ? min(c.g, ${HDR_LIMIT}) : 0.0, c.b > 0.0 ? min(c.b, ${HDR_LIMIT}) : 0.0); }`;
+const SanitizeShader = {
+  uniforms: { tDiffuse: { value: null } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+  fragmentShader: `uniform sampler2D tDiffuse; varying vec2 vUv; ${SANITIZE}
+    void main(){ gl_FragColor = vec4(sanitize(texture2D(tDiffuse, vUv).rgb), 1.0); }`,
+};
+
 const FinalShader = {
   uniforms: {
     tDiffuse: { value: null }, uTime: { value: 0 }, uVignette: { value: 0.9 }, uAberr: { value: 0.0 },
@@ -32,10 +46,11 @@ const FinalShader = {
   vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
   fragmentShader: `uniform sampler2D tDiffuse; uniform float uTime, uVignette, uAberr, uFlash, uGrain, uSat, uDark;
     uniform vec3 uFlashColor; uniform vec2 uFocus; varying vec2 vUv;
+    ${SANITIZE}
     void main(){
       vec2 c = vUv - 0.5; float r2 = dot(c, c);
       vec2 off = c * (uAberr * (0.35 + r2 * 3.0));
-      vec3 col = vec3(texture2D(tDiffuse, vUv + off).r, texture2D(tDiffuse, vUv).g, texture2D(tDiffuse, vUv - off).b);
+      vec3 col = sanitize(vec3(texture2D(tDiffuse, vUv + off).r, texture2D(tDiffuse, vUv).g, texture2D(tDiffuse, vUv - off).b));
       float l = dot(col, vec3(0.299, 0.587, 0.114));
       col = mix(vec3(l), col, uSat);
       // super-move spotlight: darken everything away from the focus point
@@ -46,7 +61,7 @@ const FinalShader = {
       col += uFlashColor * uFlash;
       float n = fract(sin(dot(vUv * vec2(1920.0, 1080.0) + uTime * 61.0, vec2(12.9898, 78.233))) * 43758.5453);
       col += (n - 0.5) * uGrain * (0.4 + l);
-      gl_FragColor = vec4(max(col, 0.0), 1.0);
+      gl_FragColor = vec4(sanitize(col), 1.0);
     }`,
 };
 
@@ -75,6 +90,7 @@ export class Gfx {
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     this.bloom = null;
     if (q.bloom) {
+      this.composer.addPass(new ShaderPass(SanitizeShader));
       this.bloom = new UnrealBloomPass(new THREE.Vector2(size.x / 2, size.y / 2), 0.55, 0.62, 0.86);
       this.composer.addPass(this.bloom);
     }

@@ -35,9 +35,30 @@ expect((await state()).match === 'fight', 'intro hands over control');
 // make the opponent a passive dummy one hit from defeat, standing in range
 await page.evaluate(() => { const m = window.__game.G.match; m.cpu = [false, false]; m.p1.x = -0.5; m.p2.x = 0.5; m.p2.hp = 1; });
 await adv(30);
-await adv(1, 'i => ({ light: true })'); await adv(30);
+// (player one may still be recovering from an earlier exchange, so retry)
+for (let i = 0; i < 8 && (await state()).match === 'fight'; i++) {
+  await page.evaluate(() => { const m = window.__game.G.match; m.p1.x = -0.5; m.p2.x = 0.5; m.p2.hp = 1; });
+  await adv(1, 'i => ({ light: true })'); await adv(45);
+}
 const s = await state();
 expect(s.match === 'roundend' && s.wins[0] === 1, 'a slash KO ends the round for player one');
+// HDR overflow guard: one absurdly bright pixel must not blank the frame
+// (bloom used to smear it and tone mapping turned the result black).
 await key('Escape');
+const meanLuma = () => page.evaluate(async () => {
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const src = document.getElementById('view'), c = document.createElement('canvas'); c.width = 64; c.height = 36;
+  const x = c.getContext('2d'); x.drawImage(src, 0, 0, 64, 36);
+  const d = x.getImageData(0, 0, 64, 36).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += d[i] + d[i + 1] + d[i + 2];
+  return s / (d.length / 4) / 3;
+});
+await page.evaluate(async () => {
+  const THREE = await import('three');
+  const m = new THREE.Mesh(new THREE.SphereGeometry(0.02, 8, 6), new THREE.MeshBasicMaterial({ color: new THREE.Color(1e30, 1e30, 1e30), fog: false }));
+  m.position.set(0, 1.6, 0.5); window.__game.gfx.scene.add(m); window.__game.gfx.setQuality('medium');
+});
+await frames(3);
+const luma = await meanLuma();
+expect(luma > 6, 'an over-range HDR pixel does not blank the picture (mean luma ' + luma.toFixed(1) + ')');
 expect(errors.length === 0, 'no page errors' + (errors.length ? ': ' + errors.join(' | ') : ''));
 await browser.close();
