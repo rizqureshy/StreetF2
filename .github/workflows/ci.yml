@@ -11,9 +11,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Syntax check
-        run: node --check game.js && node --check sw.js
-      - name: Headless smoke test
-        run: node tests/smoke.js
-      - name: Mechanics test
-        run: node tests/mechanics.js
+      - name: Static checks (modules parse, assets exist)
+        run: node tests/check.mjs
+      - name: Simulation tests
+        run: node tests/sim.test.mjs
+      - name: Classic edition tests
+        run: node classic/tests/smoke.js && node classic/tests/mechanics.js

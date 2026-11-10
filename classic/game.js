@@ -88,7 +88,7 @@ function unlockAudio() {
     // silent looping <audio> flips the iOS session to 'playback' so the
     // ringer/silent switch no longer mutes WebAudio
     silentEl = document.createElement('audio');
-    silentEl.src = 'assets/sfx/silence.mp3';
+    silentEl.src = '../assets/sfx/silence.mp3';
     silentEl.loop = true;
     silentEl.volume = 0.01;
     const p = silentEl.play();
@@ -137,39 +137,39 @@ function playSample(names, vol = 1, rateJitter = 0.05, baseRate = 1) {
   return true;
 }
 const SFX_FILES = {
-  slice1: 'assets/sfx/knife_slice.mp3', slice2: 'assets/sfx/knife_slice_2.mp3',
-  swing1: 'assets/sfx/draw_knife_1.mp3', swing2: 'assets/sfx/draw_knife_2.mp3', swing3: 'assets/sfx/draw_knife_3.mp3',
-  punchH1: 'assets/sfx/impact_punch_heavy_000.mp3', punchH2: 'assets/sfx/impact_punch_heavy_001.mp3', punchH3: 'assets/sfx/impact_punch_heavy_002.mp3',
-  punchM1: 'assets/sfx/impact_punch_medium_000.mp3', punchM2: 'assets/sfx/impact_punch_medium_001.mp3',
-  chop: 'assets/sfx/chop.mp3',
-  metal1: 'assets/sfx/impact_metal_light_000.mp3', metal2: 'assets/sfx/impact_metal_light_001.mp3', metal3: 'assets/sfx/impact_metal_medium_000.mp3',
-  body1: 'assets/sfx/impact_soft_heavy_000.mp3', body2: 'assets/sfx/impact_soft_heavy_001.mp3',
-  floor: 'assets/sfx/impact_wood_heavy_000.mp3',
-  gong: 'assets/sfx/impact_bell_heavy_000.mp3',
-  land1: 'assets/sfx/footstep_wood_000.mp3', land2: 'assets/sfx/footstep_wood_001.mp3',
-  cloth1: 'assets/sfx/cloth_1.mp3', cloth2: 'assets/sfx/cloth_3.mp3',
-  click1: 'assets/sfx/click1.mp3', click2: 'assets/sfx/click3.mp3',
-  vo_ready: 'assets/vo/ready.mp3', vo_go: 'assets/vo/go.mp3',
-  vo_round: 'assets/vo/round.mp3', vo_final_round: 'assets/vo/final_round.mp3',
-  vo_you_win: 'assets/vo/you_win.mp3', vo_you_lose: 'assets/vo/you_lose.mp3',
-  vo_time_over: 'assets/vo/time_over.mp3', vo_hurry: 'assets/vo/hurry_up.mp3',
-  vo_tie: 'assets/vo/its_a_tie.mp3', vo_congrats: 'assets/vo/congratulations.mp3',
-  vo_1: 'assets/vo/1.mp3', vo_2: 'assets/vo/2.mp3', vo_3: 'assets/vo/3.mp3',
-  vo_fight: 'assets/vo/fight.mp3',
-  vo_round_1: 'assets/vo/round_1.mp3', vo_round_2: 'assets/vo/round_2.mp3', vo_round_3: 'assets/vo/round_3.mp3',
-  vo_choose: 'assets/vo/choose_your_character.mp3',
-  vo_p1: 'assets/vo/player_1.mp3', vo_p2: 'assets/vo/player_2.mp3',
-  vo_prepare: 'assets/vo/prepare_yourself.mp3',
-  vo_combo: 'assets/vo/combo.mp3',
-  vo_flawless: 'assets/vo/flawless_victory.mp3',
-  vo_sudden: 'assets/vo/sudden_death.mp3',
-  vo_winner: 'assets/vo/winner.mp3',
-  vo_game_over: 'assets/vo/game_over.mp3',
-  laser1: 'assets/sfx/laser_large_000.mp3', laser2: 'assets/sfx/laser_large_001.mp3',
-  force1: 'assets/sfx/force_field_000.mp3', force2: 'assets/sfx/force_field_001.mp3', force3: 'assets/sfx/force_field_002.mp3',
-  expl1: 'assets/sfx/explosion_crunch_000.mp3', expl2: 'assets/sfx/explosion_crunch_001.mp3', expl3: 'assets/sfx/explosion_crunch_002.mp3',
-  music_calm: 'assets/music/menu.mp3', music_battle: 'assets/music/battle.mp3',
-  music_night: 'assets/music/night.mp3', music_doom: 'assets/music/doom.mp3',
+  slice1: '../assets/sfx/knife_slice.mp3', slice2: '../assets/sfx/knife_slice_2.mp3',
+  swing1: '../assets/sfx/draw_knife_1.mp3', swing2: '../assets/sfx/draw_knife_2.mp3', swing3: '../assets/sfx/draw_knife_3.mp3',
+  punchH1: '../assets/sfx/impact_punch_heavy_000.mp3', punchH2: '../assets/sfx/impact_punch_heavy_001.mp3', punchH3: '../assets/sfx/impact_punch_heavy_002.mp3',
+  punchM1: '../assets/sfx/impact_punch_medium_000.mp3', punchM2: '../assets/sfx/impact_punch_medium_001.mp3',
+  chop: '../assets/sfx/chop.mp3',
+  metal1: '../assets/sfx/impact_metal_light_000.mp3', metal2: '../assets/sfx/impact_metal_light_001.mp3', metal3: '../assets/sfx/impact_metal_medium_000.mp3',
+  body1: '../assets/sfx/impact_soft_heavy_000.mp3', body2: '../assets/sfx/impact_soft_heavy_001.mp3',
+  floor: '../assets/sfx/impact_wood_heavy_000.mp3',
+  gong: '../assets/sfx/impact_bell_heavy_000.mp3',
+  land1: '../assets/sfx/footstep_wood_000.mp3', land2: '../assets/sfx/footstep_wood_001.mp3',
+  cloth1: '../assets/sfx/cloth_1.mp3', cloth2: '../assets/sfx/cloth_3.mp3',
+  click1: '../assets/sfx/click1.mp3', click2: '../assets/sfx/click3.mp3',
+  vo_ready: '../assets/vo/ready.mp3', vo_go: '../assets/vo/go.mp3',
+  vo_round: '../assets/vo/round.mp3', vo_final_round: '../assets/vo/final_round.mp3',
+  vo_you_win: '../assets/vo/you_win.mp3', vo_you_lose: '../assets/vo/you_lose.mp3',
+  vo_time_over: '../assets/vo/time_over.mp3', vo_hurry: '../assets/vo/hurry_up.mp3',
+  vo_tie: '../assets/vo/its_a_tie.mp3', vo_congrats: '../assets/vo/congratulations.mp3',
+  vo_1: '../assets/vo/1.mp3', vo_2: '../assets/vo/2.mp3', vo_3: '../assets/vo/3.mp3',
+  vo_fight: '../assets/vo/fight.mp3',
+  vo_round_1: '../assets/vo/round_1.mp3', vo_round_2: '../assets/vo/round_2.mp3', vo_round_3: '../assets/vo/round_3.mp3',
+  vo_choose: '../assets/vo/choose_your_character.mp3',
+  vo_p1: '../assets/vo/player_1.mp3', vo_p2: '../assets/vo/player_2.mp3',
+  vo_prepare: '../assets/vo/prepare_yourself.mp3',
+  vo_combo: '../assets/vo/combo.mp3',
+  vo_flawless: '../assets/vo/flawless_victory.mp3',
+  vo_sudden: '../assets/vo/sudden_death.mp3',
+  vo_winner: '../assets/vo/winner.mp3',
+  vo_game_over: '../assets/vo/game_over.mp3',
+  laser1: '../assets/sfx/laser_large_000.mp3', laser2: '../assets/sfx/laser_large_001.mp3',
+  force1: '../assets/sfx/force_field_000.mp3', force2: '../assets/sfx/force_field_001.mp3', force3: '../assets/sfx/force_field_002.mp3',
+  expl1: '../assets/sfx/explosion_crunch_000.mp3', expl2: '../assets/sfx/explosion_crunch_001.mp3', expl3: '../assets/sfx/explosion_crunch_002.mp3',
+  music_calm: '../assets/music/menu.mp3', music_battle: '../assets/music/battle.mp3',
+  music_night: '../assets/music/night.mp3', music_doom: '../assets/music/doom.mp3',
 };
 for (const [n, u] of Object.entries(SFX_FILES)) loadSample(n, u);
 const VOICE = { say: (name, vol = 1) => playSample(name, vol, 0.015) };
@@ -447,7 +447,7 @@ const EMPTY_PAD = { left: false, right: false, up: false, down: false, punch: fa
 // Frame sheets are 200px-tall strips; footY/cx locate the character inside a frame.
 const CHARACTERS = [
   {
-    id: 'kaito', name: 'KAITO', dir: 'assets/p1', baseFacing: 1,
+    id: 'kaito', name: 'KAITO', dir: '../assets/p1', baseFacing: 1,
     scale: 3.4, footY: 121, cx: 94,
     frames: { Idle: 8, Run: 8, Jump: 2, Fall: 2, Attack1: 6, Attack2: 6, TakeHit: 4, Death: 6 },
     // fraction of the attack during which the blade is visually extended
@@ -459,7 +459,7 @@ const CHARACTERS = [
     taunt: 'MY BLADE NEVER WAVERS!',
   },
   {
-    id: 'kenji', name: 'KENJI', dir: 'assets/p2', baseFacing: -1,
+    id: 'kenji', name: 'KENJI', dir: '../assets/p2', baseFacing: -1,
     scale: 3.3, footY: 127, cx: 102,
     frames: { Idle: 4, Run: 8, Jump: 2, Fall: 2, Attack1: 4, Attack2: 4, TakeHit: 3, Death: 7 },
     swing: { Attack1: [0.26, 0.55], Attack2: [0.26, 0.55] },
@@ -534,8 +534,8 @@ for (const ch of CHARACTERS) {
   SHEETS[ch.id] = {};
   for (const k of Object.keys(ch.frames)) SHEETS[ch.id][k] = tintedSheet(SHEETS[ch.base][k], ch.tint);
 }
-const BG_IMG = loadImage('assets/background.png');
-const SHOP_IMG = loadImage('assets/shop.png');
+const BG_IMG = loadImage('../assets/background.png');
+const SHOP_IMG = loadImage('../assets/shop.png');
 const assetsReady = () => assetsLoaded >= assetsTotal;
 
 // ---------------- Stages ----------------
@@ -2961,9 +2961,4 @@ function loop(ts) {
   requestAnimationFrame(loop);
 }
 
-// PWA: offline cache (https / localhost only)
-if (typeof navigator !== 'undefined' && navigator.serviceWorker &&
-    typeof location !== 'undefined' && location.protocol && location.protocol.indexOf('http') === 0) {
-  try { navigator.serviceWorker.register('sw.js'); } catch (e) { /* unsupported */ }
-}
 requestAnimationFrame(loop);

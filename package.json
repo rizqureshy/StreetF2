@@ -1,10 +1,13 @@
 {
   "name": "swift-sword",
-  "version": "1.0.0",
-  "description": "A 2D samurai dueling game built with HTML5 Canvas and vanilla JS.",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A cinematic 3D samurai fighting game for the browser, built with three.js.",
   "scripts": {
-    "test": "node --check game.js && node tests/smoke.js && node tests/mechanics.js",
-    "start": "npx http-server . -p 8080"
+    "test": "node tests/check.mjs && node tests/sim.test.mjs && node classic/tests/smoke.js && node classic/tests/mechanics.js",
+    "test:e2e": "node tests/e2e.mjs",
+    "start": "npx http-server . -p 8080 -c-1"
   },
   "license": "MIT"
 }

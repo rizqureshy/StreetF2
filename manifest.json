@@ -1,15 +1,23 @@
 {
   "name": "Swift Sword",
   "short_name": "SwiftSword",
-  "description": "A 2D samurai dueling game — blades, blood, and storms.",
+  "description": "A cinematic 3D samurai fighting game \u2014 blades, blood and storms.",
   "start_url": ".",
   "scope": ".",
   "display": "fullscreen",
   "orientation": "landscape",
-  "background_color": "#0a0a12",
-  "theme_color": "#0a0a12",
+  "background_color": "#07080d",
+  "theme_color": "#07080d",
   "icons": [
-    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }

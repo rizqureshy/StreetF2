@@ -1,5 +1,10 @@
 # SWIFT SWORD — Completion Roadmap
 
+> **Status (v2.0):** the game has been rebuilt as a 3D title on three.js with
+> generated characters and arenas — see `README.md`. The plan below is the
+> original 2D roadmap, kept for history; the pixel edition lives in `classic/`.
+
+
 *Research-backed plan for taking Swift Sword from a polished prototype to a
 complete, content-rich fighting game. All asset sources verified for license
 and availability where marked ✅.*
