@@ -53,7 +53,7 @@ export function makeKatana(spec, accent) {
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setIndex(idx);
   const flat = g.toNonIndexed(); flat.computeVertexNormals();
-  const steel = new THREE.MeshStandardMaterial({ color: 0xe6edf7, metalness: 1, roughness: 0.16, envMapIntensity: 1.7 });
+  const steel = new THREE.MeshStandardMaterial({ color: 0xe6edf7, metalness: 1, roughness: 0.22, envMapIntensity: 1.7 });
   if (spec.glow) { steel.emissive = new THREE.Color(spec.glow); steel.emissiveIntensity = 0.55; steel.color.set(0x55504c); }
   const blade = new THREE.Mesh(flat, steel);
   const group = new THREE.Group();
@@ -99,8 +99,8 @@ class BladeTrail {
         void main(){
           float age = vUv.x;                       // 0 = newest
           float across = vUv.y;                    // 0 = guard, 1 = tip
-          float edge = pow(across, 2.4);
-          float fade = pow(1.0 - age, 2.2);
+          float edge = pow(clamp(across, 0.0, 1.0), 2.4);
+          float fade = pow(clamp(1.0 - age, 0.0, 1.0), 2.2);
           float core = smoothstep(0.86, 1.0, across) * fade;
           vec3 col = mix(uColor, vec3(1.0), core * 0.8) * (0.9 + core * 1.6) * uBoost;
           float a = vA * fade * edge * 0.62;
