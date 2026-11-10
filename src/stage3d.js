@@ -253,7 +253,7 @@ export class Stage {
       side: THREE.BackSide,
       uniforms: { uTop: { value: new THREE.Color(def.sky) }, uBot: { value: new THREE.Color(def.hemi.ground) }, uHor: { value: fogCol.clone().multiplyScalar(1.6) } },
       vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-      fragmentShader: 'uniform vec3 uTop,uBot,uHor; varying vec3 vP; void main(){ float h = vP.y; vec3 c = mix(uHor, uTop, smoothstep(0.0, 0.7, h)); c = mix(c, uBot, smoothstep(0.0, -0.4, h)); gl_FragColor = vec4(c, 1.0); }',
+      fragmentShader: 'uniform vec3 uTop,uBot,uHor; varying vec3 vP; void main(){ float h = vP.y; vec3 c = mix(uHor, uTop, smoothstep(0.0, 0.7, h)); c = mix(c, uBot, 1.0 - smoothstep(-0.4, 0.0, h)); gl_FragColor = vec4(c, 1.0); }',
     }));
     envScene.add(dome);
     const sunDisc = new THREE.Mesh(new THREE.SphereGeometry(2.6, 12, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(def.key.color).multiplyScalar(7) }));

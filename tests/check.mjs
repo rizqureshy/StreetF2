@@ -20,3 +20,15 @@ for (const m of audio.matchAll(/'((?:sfx|vo|music)\/[\w.]+\.mp3)'/g)) need.push(
 const missing = [...new Set(need)].filter(p => !existsSync(new URL('../' + p, import.meta.url)));
 if (missing.length) { console.error('missing assets:\n  ' + missing.join('\n  ')); process.exit(1); }
 console.log(`${n} modules parse, ${new Set(need).size} referenced assets present`);
+
+// GLSL: smoothstep(edge0, edge1, x) is undefined when edge0 >= edge1. Software
+// renderers tolerate it; real GPUs often return 0 (a black screen).
+let bad = 0;
+for (const f of readdirSync(new URL('../src/', import.meta.url))) {
+  const src = readFileSync(new URL('../src/' + f, import.meta.url), 'utf8');
+  for (const m of src.matchAll(/smoothstep\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,/g)) {
+    if (parseFloat(m[1]) >= parseFloat(m[2])) { console.error(`src/${f}: reversed ${m[0]}`); bad++; }
+  }
+}
+if (bad) process.exit(1);
+console.log('shader smoothstep edges are ordered');

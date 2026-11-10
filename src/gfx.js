@@ -41,7 +41,8 @@ const FinalShader = {
       // super-move spotlight: darken everything away from the focus point
       float fd = distance(vUv, uFocus);
       col *= 1.0 - uDark * smoothstep(0.08, 0.6, fd);
-      col *= mix(1.0, smoothstep(0.92, 0.25, sqrt(r2)), uVignette);
+      // (edges must ascend: smoothstep with edge0 > edge1 is undefined and returns 0 on many GPUs)
+      col *= mix(1.0, 1.0 - smoothstep(0.25, 0.92, sqrt(r2)), uVignette);
       col += uFlashColor * uFlash;
       float n = fract(sin(dot(vUv * vec2(1920.0, 1080.0) + uTime * 61.0, vec2(12.9898, 78.233))) * 43758.5453);
       col += (n - 0.5) * uGrain * (0.4 + l);
