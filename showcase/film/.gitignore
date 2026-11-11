@@ -1,0 +1,7 @@
+# Rebuildable intermediates (several GB): captured footage, rendered frames, audio stems, exports
+builds/
+clips/
+frames/
+audio/
+out/
+vo/*.wav

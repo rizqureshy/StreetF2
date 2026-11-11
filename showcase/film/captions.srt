@@ -1,0 +1,323 @@
+1
+00:00:01,400 --> 00:00:03,170
+This is Swift Sword.
+
+2
+00:00:03,170 --> 00:00:06,945
+A 3D samurai fighting game that runs in a browser tab.
+
+3
+00:00:06,945 --> 00:00:10,070
+Its code was written entirely by an AI.
+
+4
+00:00:10,070 --> 00:00:13,510
+But the game you're looking at was not the AI's idea.
+
+5
+00:00:13,510 --> 00:00:18,160
+This is the story of how it got here, and what actually made it good.
+
+6
+00:00:20,600 --> 00:00:24,410
+It began on June 11th, with a single sentence.
+
+7
+00:00:30,200 --> 00:00:33,905
+Minutes later, Claude Fable 5 had a playable game.
+
+8
+00:00:33,905 --> 00:00:38,390
+Two fighters drawn in code, punches, kicks, a health bar.
+
+9
+00:00:38,390 --> 00:00:41,560
+It worked. It also looked like this.
+
+10
+00:00:42,600 --> 00:00:46,100
+So the directing began. Don't copy the art.
+
+11
+00:00:46,100 --> 00:00:49,165
+Invent your own warriors. Make them bigger.
+
+12
+00:00:49,165 --> 00:00:52,450
+Then came a pencil sketch. This is my art.
+
+13
+00:00:52,450 --> 00:00:54,160
+Use characters like these.
+
+14
+00:00:54,160 --> 00:00:57,000
+Each note took the model minutes to build.
+
+15
+00:00:57,000 --> 00:01:01,025
+And each note was a person, looking at the screen, and saying:
+
+16
+00:01:01,025 --> 00:01:02,090
+not yet.
+
+17
+00:01:03,000 --> 00:01:07,195
+On day two came the question that would define the whole project.
+
+18
+00:01:07,195 --> 00:01:11,266
+Why aren't we using WebGL, and other advanced tech,
+
+19
+00:01:11,266 --> 00:01:13,560
+for more appealing characters?
+
+20
+00:01:13,560 --> 00:01:15,745
+In June, the honest answer was pixel art.
+
+21
+00:01:15,745 --> 00:01:18,610
+Real sprite fighters replaced the drawings.
+
+22
+00:01:18,610 --> 00:01:21,120
+And the reply was four words.
+
+23
+00:01:21,120 --> 00:01:23,160
+Now we are talking.
+
+24
+00:01:24,200 --> 00:01:28,375
+From there, the model wrote the code, and taste did the steering.
+
+25
+00:01:28,375 --> 00:01:31,690
+The sword looks longer than its hit. Fix it.
+
+26
+00:01:31,690 --> 00:01:35,170
+The sound is synthetic. Find real recordings.
+
+27
+00:01:35,170 --> 00:01:38,010
+The music should be grim, and Japanese.
+
+28
+00:01:38,010 --> 00:01:41,610
+Add blood. Slow it down, it feels rushed.
+
+29
+00:01:41,610 --> 00:01:44,625
+Add rain, lightning, falling leaves.
+
+30
+00:01:44,625 --> 00:01:45,125
+More drama.
+
+31
+00:01:45,125 --> 00:01:48,810
+None of these are engineering instructions.
+
+32
+00:01:48,810 --> 00:01:50,700
+They are a director's notes.
+
+33
+00:01:51,600 --> 00:01:53,955
+It got a name: Swift Sword.
+
+34
+00:01:53,955 --> 00:01:55,570
+It got touch controls,
+
+35
+00:01:55,570 --> 00:01:59,215
+and an iPhone audio bug that took two rounds to fix.
+
+36
+00:01:59,215 --> 00:02:01,440
+Then the bar was raised.
+
+37
+00:02:01,440 --> 00:02:04,365
+No half efforts anymore. A full plan.
+
+38
+00:02:04,365 --> 00:02:07,925
+Four fighters, three stages, an arcade ladder.
+
+39
+00:02:07,925 --> 00:02:09,780
+Built that same night.
+
+40
+00:02:10,800 --> 00:02:16,055
+A few days later, the work moved to a different model, Claude Opus 4.8,
+
+41
+00:02:16,055 --> 00:02:17,445
+and a new question.
+
+42
+00:02:17,445 --> 00:02:19,845
+What engine could lift this further?
+
+43
+00:02:19,845 --> 00:02:24,490
+The answer was PixiJS, and a GPU effects layer.
+
+44
+00:02:24,490 --> 00:02:26,365
+Bloom, particles, shockwaves.
+
+45
+00:02:26,365 --> 00:02:30,375
+Five days and about thirty messages in,
+
+46
+00:02:30,375 --> 00:02:32,880
+this was the ceiling of the 2D game.
+
+47
+00:02:34,000 --> 00:02:37,900
+Then, nothing. For nearly five months.
+
+48
+00:02:37,900 --> 00:02:42,345
+On November 10th, with a new model, Claude Fable 5.2, came one message.
+
+49
+00:02:42,345 --> 00:02:47,000
+This is dated. I need a complete revamp.
+
+50
+00:02:47,000 --> 00:02:49,290
+Nothing but the highest effort.
+
+51
+00:02:51,000 --> 00:02:53,565
+This time, there was no back and forth.
+
+52
+00:02:53,565 --> 00:02:57,540
+From that one prompt, the model designed three fighters.
+
+53
+00:02:57,540 --> 00:03:00,750
+Using generative tools, it created concept art,
+
+54
+00:03:00,750 --> 00:03:02,580
+turned it into 3D meshes, rigged them,
+
+55
+00:03:02,580 --> 00:03:07,620
+and retargeted a library of sword animations onto each skeleton.
+
+56
+00:03:07,620 --> 00:03:11,280
+When the generation credits ran out before the third fighter was rigged,
+
+57
+00:03:11,280 --> 00:03:13,650
+it wrote its own auto-rigging tool.
+
+58
+00:03:13,650 --> 00:03:18,055
+It generated three arenas, built the lighting, the weather, the camera,
+
+59
+00:03:18,055 --> 00:03:21,375
+and a fighting engine with its own tests.
+
+60
+00:03:21,375 --> 00:03:22,355
+And it shipped.
+
+61
+00:03:22,355 --> 00:03:25,750
+One hour and forty-three minutes after the prompt.
+
+62
+00:03:26,600 --> 00:03:28,375
+It still wasn't finished.
+
+63
+00:03:28,375 --> 00:03:31,685
+On a real graphics card, the screen went black.
+
+64
+00:03:31,685 --> 00:03:35,185
+Something the model's own test machine could never show it.
+
+65
+00:03:35,185 --> 00:03:38,875
+One screenshot from a human was enough to find the cause.
+
+66
+00:03:38,875 --> 00:03:41,160
+Minutes later, it was fixed.
+
+67
+00:03:42,200 --> 00:03:44,940
+So what changed between June and November?
+
+68
+00:03:44,940 --> 00:03:46,305
+The model did.
+
+69
+00:03:46,305 --> 00:03:49,840
+The question from day two, why can't this look better,
+
+70
+00:03:49,840 --> 00:03:52,980
+went from pixel art, to real-time 3D.
+
+71
+00:03:52,980 --> 00:03:54,605
+And from thirty messages, to one.
+
+72
+00:03:54,605 --> 00:03:58,755
+What did not change, is where the game came from.
+
+73
+00:03:58,755 --> 00:04:00,855
+Grim. Japanese. Cinematic. More drama.
+
+74
+00:04:00,855 --> 00:04:04,387
+Every one of those words came from a person,
+
+75
+00:04:04,387 --> 00:04:08,600
+months before the technology could deliver them.
+
+76
+00:04:08,600 --> 00:04:11,220
+The models keep getting better at building.
+
+77
+00:04:11,220 --> 00:04:13,115
+Knowing what is worth building?
+
+78
+00:04:13,115 --> 00:04:15,510
+That is still the human part.
+
+79
+00:04:17,000 --> 00:04:19,995
+Swift Sword. Imagined by a person.
+
+80
+00:04:19,995 --> 00:04:21,645
+Built with Claude.
+
+81
+00:04:21,645 --> 00:04:23,950
+Play it now, in your browser.

@@ -1,0 +1,67 @@
+[
+ {
+  "id": "n01",
+  "vo": "This is Swift Sword. A 3D samurai fighting game that runs in a browser tab. Its code was written entirely by an AI. But the game you're looking at was not the AI's idea. This is the story of how it got here, and what actually made it good.",
+  "cap": "This is Swift Sword. A 3D samurai fighting game that runs in a browser tab. Its code was written entirely by an AI. But the game you're looking at was not the AI's idea. This is the story of how it got here, and what actually made it good."
+ },
+ {
+  "id": "n02",
+  "vo": "It began on June eleventh, with a single sentence.",
+  "cap": "It began on June 11th, with a single sentence."
+ },
+ {
+  "id": "n03",
+  "vo": "Minutes later, Claude Fable Five had a playable game. Two fighters drawn in code, punches, kicks, a health bar. It worked. It also looked like this.",
+  "cap": "Minutes later, Claude Fable 5 had a playable game. Two fighters drawn in code, punches, kicks, a health bar. It worked. It also looked like this."
+ },
+ {
+  "id": "n04",
+  "vo": "So the directing began. Don't copy the art. Invent your own warriors. Make them bigger. Then came a pencil sketch. This is my art. Use characters like these. Each note took the model minutes to build. And each note was a person, looking at the screen, and saying: not yet.",
+  "cap": "So the directing began. Don't copy the art. Invent your own warriors. Make them bigger. Then came a pencil sketch. This is my art. Use characters like these. Each note took the model minutes to build. And each note was a person, looking at the screen, and saying: not yet."
+ },
+ {
+  "id": "n05",
+  "vo": "On day two came the question that would define the whole project. Why aren't we using Web G L, and other advanced tech, for more appealing characters? In June, the honest answer was pixel art. Real sprite fighters replaced the drawings. And the reply was four words. Now we are talking.",
+  "cap": "On day two came the question that would define the whole project. Why aren't we using WebGL, and other advanced tech, for more appealing characters? In June, the honest answer was pixel art. Real sprite fighters replaced the drawings. And the reply was four words. Now we are talking."
+ },
+ {
+  "id": "n06",
+  "vo": "From there, the model wrote the code, and taste did the steering. The sword looks longer than its hit. Fix it. The sound is synthetic. Find real recordings. The music should be grim, and Japanese. Add blood. Slow it down, it feels rushed. Add rain, lightning, falling leaves. More drama. None of these are engineering instructions. They are a director's notes.",
+  "cap": "From there, the model wrote the code, and taste did the steering. The sword looks longer than its hit. Fix it. The sound is synthetic. Find real recordings. The music should be grim, and Japanese. Add blood. Slow it down, it feels rushed. Add rain, lightning, falling leaves. More drama. None of these are engineering instructions. They are a director's notes."
+ },
+ {
+  "id": "n07",
+  "vo": "It got a name: Swift Sword. It got touch controls, and an iPhone audio bug that took two rounds to fix. Then the bar was raised. No half efforts anymore. A full plan. Four fighters, three stages, an arcade ladder. Built that same night.",
+  "cap": "It got a name: Swift Sword. It got touch controls, and an iPhone audio bug that took two rounds to fix. Then the bar was raised. No half efforts anymore. A full plan. Four fighters, three stages, an arcade ladder. Built that same night."
+ },
+ {
+  "id": "n08",
+  "vo": "A few days later, the work moved to a different model, Claude Opus four point eight, and a new question. What engine could lift this further? The answer was Pixie J S, and a G P U effects layer. Bloom, particles, shockwaves. Five days and about thirty messages in, this was the ceiling of the 2D game.",
+  "cap": "A few days later, the work moved to a different model, Claude Opus 4.8, and a new question. What engine could lift this further? The answer was PixiJS, and a GPU effects layer. Bloom, particles, shockwaves. Five days and about thirty messages in, this was the ceiling of the 2D game."
+ },
+ {
+  "id": "n09",
+  "vo": "Then, nothing. For nearly five months. On November tenth, with a new model, Claude Fable five point two, came one message. This is dated. I need a complete revamp. Nothing but the highest effort.",
+  "cap": "Then, nothing. For nearly five months. On November 10th, with a new model, Claude Fable 5.2, came one message. This is dated. I need a complete revamp. Nothing but the highest effort."
+ },
+ {
+  "id": "n10",
+  "vo": "This time, there was no back and forth. From that one prompt, the model designed three fighters. Using generative tools, it created concept art, turned it into 3D meshes, rigged them, and retargeted a library of sword animations onto each skeleton. When the generation credits ran out before the third fighter was rigged, it wrote its own auto-rigging tool. It generated three arenas, built the lighting, the weather, the camera, and a fighting engine with its own tests. And it shipped. One hour and forty-three minutes after the prompt.",
+  "cap": "This time, there was no back and forth. From that one prompt, the model designed three fighters. Using generative tools, it created concept art, turned it into 3D meshes, rigged them, and retargeted a library of sword animations onto each skeleton. When the generation credits ran out before the third fighter was rigged, it wrote its own auto-rigging tool. It generated three arenas, built the lighting, the weather, the camera, and a fighting engine with its own tests. And it shipped. One hour and forty-three minutes after the prompt."
+ },
+ {
+  "id": "n11",
+  "vo": "It still wasn't finished. On a real graphics card, the screen went black. Something the model's own test machine could never show it. One screenshot from a human was enough to find the cause. Minutes later, it was fixed.",
+  "cap": "It still wasn't finished. On a real graphics card, the screen went black. Something the model's own test machine could never show it. One screenshot from a human was enough to find the cause. Minutes later, it was fixed."
+ },
+ {
+  "id": "n12",
+  "vo": "So what changed between June and November? The model did. The question from day two, why can't this look better, went from pixel art, to real-time 3D. And from thirty messages, to one. What did not change, is where the game came from. Grim. Japanese. Cinematic. More drama. Every one of those words came from a person, months before the technology could deliver them. The models keep getting better at building. Knowing what is worth building? That is still the human part.",
+  "cap": "So what changed between June and November? The model did. The question from day two, why can't this look better, went from pixel art, to real-time 3D. And from thirty messages, to one. What did not change, is where the game came from. Grim. Japanese. Cinematic. More drama. Every one of those words came from a person, months before the technology could deliver them. The models keep getting better at building. Knowing what is worth building? That is still the human part."
+ },
+ {
+  "id": "n13",
+  "vo": "Swift Sword. Imagined by a person. Built with Claude. Play it now, in your browser.",
+  "cap": "Swift Sword. Imagined by a person. Built with Claude. Play it now, in your browser."
+ }
+]

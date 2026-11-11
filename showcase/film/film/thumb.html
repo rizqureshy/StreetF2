@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Swift Sword thumbnail</title>
+<style>
+@font-face{font-family:Mincho;src:url(fonts/shippori-mincho-b1-800.woff2);font-weight:800}
+@font-face{font-family:Inter;src:url(fonts/inter-latin-700-normal.woff2);font-weight:700}
+@font-face{font-family:Mono;src:url(fonts/jetbrains-mono-latin-700-normal.woff2);font-weight:700}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#000;overflow:hidden}
+#t{position:relative;width:1280px;height:720px;overflow:hidden;background:#07080d;color:#fff;font-family:Inter,sans-serif}
+.half{position:absolute;inset:0}
+.half img{position:absolute;object-fit:cover}
+#l{clip-path:polygon(0 0,47% 0,37% 100%,0 100%)}
+#l img{left:-640px;top:-90px;width:1440px;height:810px;image-rendering:pixelated;filter:saturate(1.05) brightness(1.02)}
+#r{clip-path:polygon(47% 0,100% 0,100% 100%,37% 100%)}
+#r img{left:-105px;top:-180px;width:1600px;height:900px;filter:contrast(1.08) saturate(1.15) brightness(1.18)}
+.slash{position:absolute;inset:0;background:linear-gradient(180deg,#fff6dc,#f4dc9a 40%,#d9b25c);clip-path:polygon(46.6% 0,47.4% 0,37.4% 100%,36.6% 100%);box-shadow:0 0 30px #f4dc9a}
+.shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.72) 0%,rgba(0,0,0,.38) 36%,rgba(0,0,0,0) 56%,rgba(0,0,0,0) 84%,rgba(0,0,0,.85) 100%)}
+.tag{position:absolute;top:30px;font:700 22px/1 Mono,monospace;letter-spacing:.14em;padding:13px 18px;background:rgba(5,6,10,.82);border-left:5px solid #d9b25c}
+.num{position:absolute;top:92px;font:800 168px/1 Mincho,serif;letter-spacing:.01em;text-shadow:0 6px 0 rgba(0,0,0,.75),0 0 50px rgba(0,0,0,.9)}
+.sub{position:absolute;top:268px;font:700 36px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;text-shadow:0 3px 10px #000}
+.gold{background:linear-gradient(180deg,#fff6dc 0%,#f4dc9a 38%,#d9b25c 62%,#8a6626 100%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 6px 0 rgba(0,0,0,.8)) drop-shadow(0 0 30px rgba(0,0,0,.9))}
+.foot{position:absolute;left:0;right:0;bottom:20px;text-align:center;font:700 21px/1 Mono,monospace;letter-spacing:.3em;color:rgba(239,231,214,.85);text-transform:uppercase}
+</style></head><body><div id="t">
+<div class="half" id="l"><img id="li"></div>
+<div class="half" id="r"><img id="ri"></div>
+<div class="shade"></div><div style="position:absolute;left:0;right:0;top:0;height:92px;background:linear-gradient(180deg,rgba(5,6,10,.98) 70%,rgba(5,6,10,0))"></div><div class="slash"></div>
+<div class="tag" style="left:30px">JUNE · FABLE 5 + OPUS 4.8</div>
+<div class="tag" style="right:30px;border-left:0;border-right:5px solid #d9b25c">NOVEMBER · FABLE 5.2</div>
+<div class="num" style="left:40px">30</div><div class="sub" style="left:46px">messages</div>
+<div class="num gold" style="right:52px">1</div><div class="sub" style="right:36px;color:#f4dc9a">message</div>
+<div class="foot">Swift Sword · the making of</div>
+</div>
+<script>
+const q = new URLSearchParams(location.search);
+li.src = '../clips/' + (q.get('l') || 'b10/00500.jpg'); ri.src = '../clips/' + (q.get('r') || 'c_storm/00085.jpg');
+Promise.all([li.decode(), ri.decode(), document.fonts.ready]).then(() => window.__ready = true);
+</script></body></html>

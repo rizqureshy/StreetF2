@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Swift Sword — the making of</title>
+<style>
+@font-face{font-family:Mincho;src:url(fonts/shippori-mincho-b1-800.woff2);font-weight:800}
+@font-face{font-family:Mincho;src:url(fonts/shippori-mincho-b1-400.woff2);font-weight:400}
+@font-face{font-family:Yuji;src:url(fonts/yuji-boku-kanji.woff2)}
+@font-face{font-family:Inter;src:url(fonts/inter-latin-400-normal.woff2);font-weight:400}
+@font-face{font-family:Inter;src:url(fonts/inter-latin-500-normal.woff2);font-weight:500}
+@font-face{font-family:Inter;src:url(fonts/inter-latin-600-normal.woff2);font-weight:600}
+@font-face{font-family:Inter;src:url(fonts/inter-latin-700-normal.woff2);font-weight:700}
+@font-face{font-family:Mono;src:url(fonts/jetbrains-mono-latin-400-normal.woff2);font-weight:400}
+@font-face{font-family:Mono;src:url(fonts/jetbrains-mono-latin-700-normal.woff2);font-weight:700}
+:root{--ink:#07080d;--paper:#efe7d6;--gold:#d9b25c;--gold2:#f4dc9a;--blood:#c2261c;--dim:rgba(239,231,214,.62)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#000;overflow:hidden}
+#stage{position:relative;width:1920px;height:1080px;overflow:hidden;background:var(--ink);color:var(--paper);font-family:Inter,sans-serif}
+.abs{position:absolute}.full{position:absolute;inset:0}
+img.foot{position:absolute;left:0;top:0;width:1920px;height:1080px;object-fit:cover}
+img.px{image-rendering:pixelated}
+.shade{position:absolute;inset:0}
+.serif{font-family:Mincho,serif}.mono{font-family:Mono,monospace}.kanji{font-family:Yuji,serif}
+.gold{background:linear-gradient(180deg,#fff6dc 0%,var(--gold2) 38%,var(--gold) 60%,#7a5a22 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.cap{position:absolute;left:0;right:0;bottom:30px;text-align:center}
+.cap span{display:inline-block;max-width:1380px;text-wrap:balance;padding:12px 30px 14px;font:600 39px/1.3 Inter,sans-serif;color:#fff;background:rgba(5,6,10,.74);border-radius:10px;letter-spacing:.005em;text-shadow:0 2px 6px rgba(0,0,0,.6)}
+.hud{position:absolute;top:44px;font:600 21px/1 Mono,monospace;letter-spacing:.2em;text-transform:uppercase}
+.chip{display:inline-flex;align-items:center;gap:14px;padding:13px 22px;border:1.5px solid rgba(239,231,214,.45);background:rgba(5,6,10,.66);border-radius:999px}
+.dot{width:11px;height:11px;border-radius:50%;background:var(--gold2);box-shadow:0 0 12px var(--gold2)}
+.q{position:absolute;padding:30px 40px 34px;background:linear-gradient(180deg,rgba(9,10,16,.9),rgba(9,10,16,.84));border-left:5px solid var(--blood);box-shadow:0 20px 60px rgba(0,0,0,.55)}
+.q .meta{font:600 19px/1 Mono,monospace;letter-spacing:.2em;color:var(--gold2);margin-bottom:18px;text-transform:uppercase}
+.q .tx{font:400 46px/1.32 Mincho,serif;color:#fff;text-wrap:pretty}
+.q .tx b{font-weight:800}
+.caret{display:inline-block;width:.5em;height:1em;background:var(--gold2);vertical-align:-.12em;margin-left:.08em}
+.label{position:absolute;font:600 22px/1.4 Mono,monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--paper);padding:12px 20px;background:rgba(5,6,10,.7);border-left:4px solid var(--gold)}
+.big{position:absolute;left:0;right:0;text-align:center;font-family:Mincho,serif;font-weight:800;letter-spacing:.04em;text-shadow:0 6px 0 rgba(0,0,0,.7),0 0 60px rgba(0,0,0,.9)}
+.note{font:500 30px/1.35 Mincho,serif;color:#fff;padding:13px 0 13px 22px;border-left:3px solid var(--blood);margin-bottom:14px}
+.note small{display:block;font:600 16px/1 Mono,monospace;letter-spacing:.2em;color:var(--gold2);margin-bottom:8px}
+.mon{position:absolute;left:240px;top:128px;width:1440px;height:810px;overflow:hidden;border:2px solid rgba(239,231,214,.28);box-shadow:0 30px 90px rgba(0,0,0,.7),0 0 0 10px rgba(12,14,22,.9)}
+.mon img{position:absolute;inset:0;width:100%;height:100%}
+.big.gold{text-shadow:none;filter:drop-shadow(0 5px 0 rgba(0,0,0,.8)) drop-shadow(0 0 38px rgba(0,0,0,.85))}
+.vig{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 46%,rgba(0,0,0,0) 52%,rgba(0,0,0,.5) 100%);pointer-events:none}
+.card{position:absolute;background:#0d0f17;border:1px solid rgba(239,231,214,.22);box-shadow:0 30px 80px rgba(0,0,0,.6);overflow:hidden}
+.card img{display:block;width:100%;height:100%;object-fit:cover}
+.card .t{position:absolute;left:0;right:0;bottom:0;padding:44px 22px 16px;background:linear-gradient(0deg,rgba(0,0,0,.92),rgba(0,0,0,0));font:600 20px/1.3 Mono,monospace;letter-spacing:.18em;text-transform:uppercase}
+.term{position:absolute;background:#0a0c12;border:1px solid rgba(239,231,214,.25);border-radius:12px;padding:26px 32px;font:400 25px/1.55 Mono,monospace;color:#cfd6e6;box-shadow:0 30px 80px rgba(0,0,0,.6);white-space:pre}
+.term .ok{color:#7fe3a0}.term .c{color:#7c88a8}
+</style></head><body><div id="stage"></div>
+<script>
+const FPS = 30, DUR = 271;
+const cl = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const ease = u => { u = cl(u); return u * u * (3 - 2 * u); };
+const out3 = u => 1 - Math.pow(1 - cl(u), 3);
+/** 0→1 over [a,a+fi], hold, 1→0 over [b-fo,b] */
+const fade = (t, a, b, fi = 0.4, fo = 0.4) => (t < a || t > b ? 0 : Math.min(ease((t - a) / fi), ease((b - t) / fo)));
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const typed = (text, t, t0, cps = 34) => { const n = Math.floor(cl((t - t0) * cps, 0, text.length)); return esc(text.slice(0, n)) + (n < text.length && t >= t0 ? '<i class="caret"></i>' : ''); };
+const pad5 = n => String(n).padStart(5, '0');
+
+// ---------------------------------------------------------------- narration timing
+const VO = { n01: 1.4, n02: 20.6, n03: 30.2, n04: 42.6, n05: 63.0, n06: 84.2, n07: 111.6, n08: 130.8, n09: 154.0, n10: 171.0, n11: 206.6, n12: 222.2, n13: 257.0 };
+let CAPS = [], CLIPS = {};
+
+function buildCaptions(script, timing) {
+  const caps = [];
+  for (const seg of script) {
+    const tm = timing[seg.id], t0 = VO[seg.id];
+    let units = seg.cap.split(/(?<=[.?!:])\s+/);
+    units = units.flatMap(u => {
+      if (u.length <= 74) return [u];
+      const parts = u.split(/,\s+/); const outU = []; let cur = '';
+      for (const p of parts) { if (cur && (cur + ', ' + p).length > 70) { outU.push(cur + ','); cur = p; } else cur = cur ? cur + ', ' + p : p; }
+      outU.push(cur); return outU;
+    });
+    // merge very short neighbours so captions do not flicker
+    const merged = [];
+    for (const u of units) { const last = merged[merged.length - 1]; if (last && (last.length + u.length) < 46) merged[merged.length - 1] = last + ' ' + u; else merged.push(u); }
+    const speechEnd = tm.sil.length && tm.sil[tm.sil.length - 1][1] >= tm.dur - 0.05 ? tm.sil[tm.sil.length - 1][0] : tm.dur;
+    const total = merged.reduce((a, u) => a + u.length, 0);
+    const pauses = tm.sil.map(s => (s[0] + s[1]) / 2).filter(p => p < speechEnd - 0.2);
+    let acc = 0; const bounds = [0];
+    for (let i = 0; i < merged.length - 1; i++) {
+      acc += merged[i].length;
+      let b = speechEnd * acc / total;
+      let best = null; for (const p of pauses) if (best === null || Math.abs(p - b) < Math.abs(best - b)) best = p;
+      if (best !== null && Math.abs(best - b) < 0.9 && best > bounds[bounds.length - 1] + 0.5) b = best;
+      bounds.push(Math.max(b, bounds[bounds.length - 1] + 0.5));
+    }
+    bounds.push(speechEnd + 0.35);
+    merged.forEach((u, i) => caps.push({ a: t0 + bounds[i], b: t0 + bounds[i + 1], text: u }));
+  }
+  return caps;
+}
+
+// ---------------------------------------------------------------- footage helpers
+/** frame image from a captured clip. start: film time the clip begins, off: first clip frame, speed, hold: clamp at the last frame */
+function foot(name, t, start, off = 0, o = {}) {
+  const c = CLIPS[name]; if (!c) return '';
+  let i = Math.floor((t - start) * FPS * (o.speed || 1)) + off;
+  const last = (o.end !== undefined ? o.end : c.n - 1);
+  if (o.loop) { const len = last - off + 1; i = off + (((i - off) % len) + len) % len; }
+  i = Math.max(off, Math.min(last, i));
+  const st = [];
+  if (o.op !== undefined) st.push('opacity:' + o.op.toFixed(3));
+  if (o.filter) st.push('filter:' + o.filter);
+  if (o.tf) st.push('transform:' + o.tf);
+  if (o.clip) st.push('clip-path:' + o.clip);
+  if (c.px && !o.bleed) return `<div class="mon" style="${st.join(';')}"><img src="../clips/${name}/${pad5(i)}.jpg"></div>`;
+  return `<img class="foot${c.px ? ' px' : ''}" src="../clips/${name}/${pad5(i)}.jpg" style="${st.join(';')}">`;
+}
+const shade = (a, grad) => `<div class="shade" style="background:${grad || `rgba(5,6,10,${a})`}"></div>`;
+const img = (src, style) => `<img src="img/${src}" style="position:absolute;${style}">`;
+
+function quote(t, a, b, text, meta, o = {}) {
+  const f = fade(t, a, b, 0.35, 0.35); if (f <= 0) return '';
+  const x = o.x ?? 290, y = o.y ?? 190, w = o.w ?? 1080, size = o.size ?? 46;
+  const body = o.typed ? typed(text, t, a + 0.25, o.cps || 34) : esc(text);
+  return `<div class="q" style="left:${x}px;top:${y}px;width:${w}px;opacity:${f.toFixed(3)};transform:translateY(${((1 - out3((t - a) / 0.5)) * 26).toFixed(1)}px)"><div class="meta">${meta}</div><div class="tx" style="font-size:${size}px">“${body}”</div></div>`;
+}
+const label = (t, a, b, text, x = 272, y = 852) => { const f = fade(t, a, b, 0.3, 0.3); return f <= 0 ? '' : `<div class="label" style="left:${x}px;top:${y}px;opacity:${f.toFixed(3)}">${text}</div>`; };
+function big(t, a, b, text, o = {}) {
+  const f = fade(t, a, b, o.fi ?? 0.35, o.fo ?? 0.4); if (f <= 0) return '';
+  const s = 1 + (1 - out3((t - a) / 0.6)) * 0.12;
+  return `<div class="big${o.cls ? ' ' + o.cls : ''}" style="top:${o.y ?? 430}px;font-size:${o.size ?? 110}px;opacity:${f.toFixed(3)};transform:scale(${s.toFixed(4)});${o.style || ''}">${text}</div>`;
+}
+
+// ---------------------------------------------------------------- persistent HUD
+const CHAPTERS = [[20, 62.6, 'June 11, 2026 · Day 1'], [62.6, 111.2, 'June 12 · Day 2'], [111.2, 130.2, 'June 12 – 13'], [130.2, 153.4, 'June 15 – 16'], [158, 221.6, 'November 10, 2026']];
+const MODELS = [[30, 132.2, 'Claude Fable 5'], [134.2, 153.4, 'Claude Opus 4.8'], [160.2, 221.6, 'Claude Fable 5.2']];
+const MSGS = [[24.3, 1], [27.6, 2], [29.6, 4], [43.4, 6], [48.2, 8], [67.3, 9], [78, 10], [81.2, 11], [92, 12], [95.4, 13], [97, 14], [99.4, 15], [112.6, 17], [114.4, 20], [116.6, 22], [119.6, 23], [123.4, 24], [136, 25], [140.2, 26], [142.4, 28], [148, 29]];
+function hud(t) {
+  let h = '';
+  for (const [a, b, name] of CHAPTERS) { const f = fade(t, a, b, 0.5, 0.5); if (f > 0) h += `<div class="hud" style="left:64px;opacity:${f.toFixed(3)}"><span class="chip">${name}</span></div>`; }
+  for (const [a, b, name] of MODELS) {
+    const f = fade(t, a, b, 0.5, 0.5); if (f <= 0) continue;
+    const pulse = 1 + (1 - out3((t - a) / 0.9)) * 0.5;
+    h += `<div class="hud" style="right:64px;opacity:${f.toFixed(3)};transform:scale(${pulse.toFixed(3)});transform-origin:100% 0"><span class="chip"><i class="dot"></i>Model · ${name}</span></div>`;
+  }
+  if (t >= 24.3 && t < 153.4) {
+    let n = 0, lastT = 0; for (const [mt, k] of MSGS) if (t >= mt) { n = k; lastT = mt; }
+    const f = Math.min(ease((t - 24.3) / 0.5), ease((153.4 - t) / 0.5)), bump = 1 + (1 - out3((t - lastT) / 0.4)) * 0.35;
+    h += `<div class="hud" style="right:${t < 30 ? 64 : 548}px;opacity:${f.toFixed(3)}"><span class="chip" style="border-color:rgba(194,38,28,.8)">Human messages <b style="font-size:27px;color:#fff;display:inline-block;transform:scale(${bump.toFixed(3)})">${n}</b></span></div>`;
+  }
+  if (t >= 163.6 && t < 206) {
+    const f = Math.min(ease((t - 163.6) / 0.5), ease((206 - t) / 0.5));
+    h += `<div class="hud" style="right:572px;opacity:${f.toFixed(3)}"><span class="chip" style="border-color:rgba(194,38,28,.8)">Human messages <b style="font-size:27px;color:#fff">1</b></span></div>`;
+  }
+  return h;
+}
+function captions(t) {
+  for (const c of CAPS) if (t >= c.a && t < c.b) { const f = Math.min(ease((t - c.a) / 0.12), 1); return `<div class="cap" style="opacity:${f.toFixed(3)}"><span>${esc(c.text)}</span></div>`; }
+  return '';
+}
+
+// ---------------------------------------------------------------- scenes
+function scene(t) {
+  let h = shade(1, 'radial-gradient(ellipse at 50% 42%,#161a28 0%,#07080d 76%)');
+  const C = CLIPS;
+  // ===== S0 cold open (0–20)
+  if (t < 20.4) {
+    if (t < 8.6) h += foot('c_storm', t, 0.2, C.c_storm.i0, { op: ease(t / 1.2) });
+    if (t >= 8.2 && t < 14.4) h += foot('c_siege', t, 8.2, C.c_siege.i0 + 20, { op: ease((t - 8.2) / 0.4) });
+    if (t >= 14.0) h += foot('c_title', t, 14.0, 0, { op: ease((t - 14.0) / 0.6) });
+    h += shade(0, 'linear-gradient(180deg,rgba(5,6,10,.25) 0%,rgba(5,6,10,0) 22%,rgba(5,6,10,0) 62%,rgba(5,6,10,.7) 100%)');
+    if (t >= 14.0) {
+      h += shade(0.3 * fade(t, 14.2, 20.4, 0.6, 0.6));
+      h += `<div class="abs" style="left:0;right:0;top:796px;text-align:center;opacity:${fade(t, 14.8, 20.0, 0.6, 0.5).toFixed(3)}"><span style="font:600 30px/1 Mono,monospace;letter-spacing:.42em;color:var(--gold2);background:rgba(5,6,10,.72);padding:16px 34px;border-radius:6px">HOW IT WAS MADE · A STORY ABOUT DIRECTING AI</span></div>`;
+    }
+    h += shade(1 - ease(t / 0.9));
+    h += shade(ease((t - 19.7) / 0.6));
+  }
+  // ===== S1 the first prompt (20–30)
+  if (t >= 20 && t < 30.4) {
+    h += shade(1, 'radial-gradient(ellipse at 50% 40%,#161a28 0%,#07080d 72%)');
+    const f = fade(t, 20.2, 30.2, 0.6, 0.4);
+    h += `<div class="abs" style="left:0;right:0;top:214px;text-align:center;opacity:${f.toFixed(3)}"><div class="serif gold" style="font-size:128px;font-weight:800;letter-spacing:.16em;line-height:1">JUNE 11</div><div class="mono" style="margin-top:22px;font-size:26px;letter-spacing:.5em;color:var(--dim)">2026 · 21:48 UTC</div></div>`;
+    if (t >= 24.2) h += `<div class="q" style="left:310px;top:520px;width:1300px;opacity:${(fade(t, 24.2, 30.2, 0.3, 0.4)).toFixed(3)}"><div class="meta">Message 1 · to Claude</div><div class="tx" style="font-size:58px">${typed('I want you to create Streent Fighter 2 Game for me.', t, 24.4, 21)}</div></div>`;
+    if (t >= 27.6) h += `<div class="q" style="left:310px;top:742px;width:760px;border-left-color:var(--gold);opacity:${(fade(t, 27.6, 30.2, 0.25, 0.4)).toFixed(3)}"><div class="meta">Message 2 · 17 seconds later</div><div class="tx" style="font-size:50px">${typed('Sorry Street Fighter 2', t, 27.75, 30)}</div></div>`;
+  }
+  // ===== S2 build one (30–42.6)
+  if (t >= 30 && t < 43) {
+    h += foot('b01', t, 30, C.b01.fight + 40, { op: ease((t - 30) / 0.5) });
+    h += label(t, 31.4, 42.4, 'Build 1 · first playable · 10 minutes after the prompt');
+  }
+  // ===== S3 the directing begins (42.6–62.6)
+  if (t >= 42.6 && t < 63) {
+    if (t < 48.2) h += foot('b02', t, 42.6, C.b02.fight + 60, { op: ease((t - 42.6) / 0.35) });
+    if (t >= 47.9 && t < 49.6) h += foot('b03', t, 47.9, C.b03.fight + 30, { op: ease((t - 47.9) / 0.3) });
+    if (t >= 49.3 && t < 54.6) {
+      h += shade(1, 'radial-gradient(ellipse at 50% 40%,#1a1d2b 0%,#07080d 75%)');
+      const a1 = out3((t - 49.5) / 0.7), a2 = out3((t - 51.3) / 0.7);
+      h += `<div class="card" style="left:${330 - (1 - a1) * 80}px;top:150px;width:556px;height:700px;opacity:${a1.toFixed(3)};transform:rotate(-2deg)"><img src="img/sketch_pencil.png"><div class="t">The director's pencil sketch</div></div>`;
+      h += `<div class="card" style="left:${1000 + (1 - a2) * 80}px;top:150px;width:686px;height:700px;opacity:${a2.toFixed(3)};transform:rotate(1.5deg)"><img src="img/sketch_color.png"><div class="t">“This is my art.”</div></div>`;
+    }
+    if (t >= 54.3 && t < 57.4) h += foot('b03', t, 54.3, C.b03.fight + 150, { op: ease((t - 54.3) / 0.35) });
+    if (t >= 57.1) {
+      h += shade(1, 'radial-gradient(ellipse at 50% 40%,#161a28 0%,#07080d 75%)');
+      [['b01', 'Build 1', '21:58'], ['b02', 'Build 2', '22:31'], ['b03', 'Build 3', '22:48']].forEach(([n, nm, tm], i) => {
+        const a = out3((t - 57.2 - i * 0.45) / 0.6), c = C[n];
+        const fi = Math.min(c.n - 1, c.fight + 200 + Math.floor((t - 57.1) * FPS));
+        h += `<div class="card" style="left:${96 + i * 592}px;top:${300 + (1 - a) * 50}px;width:544px;height:306px;opacity:${a.toFixed(3)}"><img class="px" src="../clips/${n}/${pad5(fi)}.jpg"><div class="t">${nm} · June 11 · ${tm} UTC</div></div>`;
+      });
+      h += big(t, 60.9, 63, 'Not yet.', { y: 700, size: 120, cls: 'gold' });
+    }
+    h += quote(t, 43.4, 48.0, 'You do not have to copy the art, just recreate them in your own new characters of warriors…', 'Direction · June 11 · 22:21', { w: 1120, size: 44 });
+    h += quote(t, 48.1, 49.5, 'The characters are too small.', 'Direction · June 11 · 22:41', { w: 760 });
+    h += label(t, 54.6, 57.2, 'Build 3 · the sketch becomes a fighter: APEX');
+  }
+  // ===== S4 the question (62.6–83.8)
+  if (t >= 62.6 && t < 84.2) {
+    if (t < 73.2) { h += foot('b03', t, 62.6, C.b03.fight + 260, { bleed: true, filter: 'blur(14px) brightness(.34)', tf: 'scale(1.06)' }); h += shade(0.35); }
+    if (t < 67.4) h += big(t, 63.1, 67.3, 'DAY TWO', { y: 420, size: 150, cls: 'gold', style: 'letter-spacing:.2em' });
+    h += quote(t, 67.2, 73.2, 'From a design perspective… why aren’t we using WebGL and other advanced tech for designing more appealing characters and fight?', 'The question · June 12 · 02:10 UTC', { x: 250, y: 300, w: 1420, size: 60, typed: true, cps: 28 });
+    if (t >= 72.9) h += foot('b04', t, 72.9, C.b04.fight + 30, { op: ease((t - 72.9) / 0.4) });
+    h += label(t, 74, 80.8, 'June answer: real pixel-art sprite fighters');
+    if (t >= 81) { h += shade(0.62 * fade(t, 81, 84.2, 0.3, 0.3)); h += big(t, 81.2, 84.1, '“Now we are talking.”', { y: 420, size: 130 }); }
+  }
+  // ===== S5 director's notes (83.8–111.2)
+  if (t >= 83.8 && t < 111.6) {
+    if (t < 91.8) h += foot('b05', t, 83.8, C.b05.fight + 20, { op: ease((t - 83.8) / 0.4) });
+    if (t >= 91.5 && t < 95.3) h += foot('b06', t, 91.5, 60, { op: ease((t - 91.5) / 0.3) });
+    if (t >= 95.0 && t < 99.5) h += foot('b07', t, 95.0, C.b07.fight + 120, { op: ease((t - 95.0) / 0.3) });
+    if (t >= 99.2) h += foot('b08', t, 99.2, C.b08.fight + 60, { op: ease((t - 99.2) / 0.3) });
+    h += shade(0, 'linear-gradient(90deg,rgba(5,6,10,.9) 0%,rgba(5,6,10,.78) 30%,rgba(5,6,10,0) 56%)');
+    const notes = [[88.7, 'June 12 · 04:04', 'the sword visual and the hit are not the same'], [92.0, 'June 12 · 04:27', 'very poppy, computer-generated… I want much richer sound'], [95.4, 'June 12 · 04:59', 'The music needs to be grim and Japanese, not synthesized.'], [98.2, 'June 12 · 04:59', 'blood spilling, Mortal Kombat style action'], [99.4, 'June 12 · 15:56', 'Slow down the action… it still looks rushed.'], [101.8, 'June 12 · 15:56', 'flying leaves, rain, lightning, weather effects'], [104.8, 'June 12 · 15:56', 'more drama, more fun']];
+    const pf = fade(t, 84.6, 106.6, 0.5, 0.5);
+    let list = `<div class="mono" style="font-size:22px;letter-spacing:.4em;color:var(--gold2);margin-bottom:26px">DIRECTOR'S NOTES</div>`;
+    for (const [nt, meta, tx] of notes) { const a = out3((t - nt) / 0.45); if (t >= nt) list += `<div class="note" style="opacity:${a.toFixed(3)};transform:translateX(${((1 - a) * -30).toFixed(1)}px)"><small>${meta}</small>“${tx}”</div>`; }
+    h += `<div class="abs" style="left:96px;top:176px;width:760px;opacity:${pf.toFixed(3)}">${list}</div>`;
+    if (t >= 106.2) { h += shade(0.78 * fade(t, 106.2, 111.6, 0.4, 0.4)); h += big(t, 106.5, 109.0, 'None of these are engineering instructions.', { y: 440, size: 74 }); h += big(t, 109.0, 111.5, 'They are a director’s notes.', { y: 420, size: 112, cls: 'gold' }); }
+  }
+  // ===== S6 name, mobile, the bar is raised (111.2–130.2)
+  if (t >= 111.2 && t < 130.6) {
+    if (t < 114.6) { const z = 1.04 + (t - 111.2) * 0.012; h += `<div class="mon" style="opacity:${ease((t - 111.2) / 0.4).toFixed(3)}"><img src="img/09_swift_sword_rename.png" style="transform:scale(${z.toFixed(4)})"></div>`; }
+    if (t >= 114.2 && t < 119.8) { h += shade(1, 'radial-gradient(ellipse at 50% 40%,#161a28 0%,#07080d 75%)'); const a = out3((t - 114.3) / 0.6); h += `<div class="card" style="left:${240 + (1 - a) * 60}px;top:170px;width:1280px;height:720px;opacity:${a.toFixed(3)};border-radius:28px;border:6px solid #1c2030"><img src="img/10_mobile_touch.png"></div>`; }
+    if (t >= 119.5 && t < 123.6) h += shade(1, 'radial-gradient(ellipse at 50% 40%,#1c1114 0%,#07080d 75%)');
+    if (t >= 123.2) h += foot('b10', t, 123.2, 6, { op: ease((t - 123.2) / 0.4) });
+    h += quote(t, 112.2, 114.4, 'Let’s call it something like Swift Sword', 'Direction · June 12 · 16:12', { y: 640, w: 980 });
+    h += quote(t, 115.6, 119.6, 'Still no audio on Safari and Chrome on iPhone', 'Bug report · June 12 · 20:16', { x: 420, y: 690, w: 1080, size: 42 });
+    h += quote(t, 119.8, 123.4, '…full research, full effort on planning… We want a full polished app now.', 'Direction · June 12 · 23:08', { x: 260, y: 330, w: 1400, size: 62 });
+    h += label(t, 124.4, 130.2, '4 fighters · 3 stages · arcade ladder — built the same night');
+  }
+  // ===== S7 a different model (130.2–153.4)
+  if (t >= 130.2 && t < 153.8) {
+    if (t < 142.8) { h += foot('b10', t, 130.2, C.b10.fight + 60, { bleed: true, filter: 'blur(12px) brightness(.36)', tf: 'scale(1.06)' }); h += shade(0.3); }
+    if (t < 136.2) {
+      const f = fade(t, 131.4, 136.1, 0.5, 0.4), k = ease((t - 133.6) / 0.6);
+      h += `<div class="abs" style="left:0;right:0;top:400px;text-align:center;opacity:${f.toFixed(3)}"><div class="mono" style="font-size:24px;letter-spacing:.5em;color:var(--dim);margin-bottom:34px">A DIFFERENT MODEL TAKES OVER</div><span class="serif" style="font-size:86px;font-weight:800;color:rgba(239,231,214,${(0.9 - k * 0.55).toFixed(2)})">Claude Fable 5</span><span class="serif gold" style="font-size:86px;font-weight:800;margin:0 40px">→</span><span class="serif gold" style="font-size:${(86 + k * 18).toFixed(0)}px;font-weight:800;opacity:${(0.35 + k * 0.65).toFixed(2)}">Claude Opus 4.8</span></div>`;
+    }
+    h += quote(t, 136.2, 140.3, '…what other free game development engines are available that we can use to uplift the whole experience to the next level?', 'Question · June 15 · 23:08', { x: 250, y: 290, w: 1420, size: 54 });
+    h += quote(t, 140.3, 142.8, 'PixiJS man... I like that', 'Decision · June 15 · 23:20', { x: 480, y: 380, w: 960, size: 78 });
+    if (t >= 142.5) h += foot('b11', t, 142.5, C.b11.fight + 60, { op: ease((t - 142.5) / 0.4) });
+    h += label(t, 143.6, 147.8, 'GPU effects layer · bloom · particles · shockwaves');
+    if (t >= 147.6) {
+      h += shade(0.72 * fade(t, 147.6, 153.8, 0.4, 0.4));
+      const f = fade(t, 147.9, 153.6, 0.4, 0.4);
+      h += `<div class="abs" style="left:0;right:0;top:330px;display:flex;justify-content:center;gap:110px;opacity:${f.toFixed(3)}">${[['5', 'days'], ['~30', 'human messages'], ['2', 'Claude models']].map(([n, l]) => `<div style="text-align:center"><div class="serif gold" style="font-size:170px;font-weight:800;line-height:1">${n}</div><div class="mono" style="font-size:24px;letter-spacing:.34em;color:var(--paper);margin-top:14px;text-transform:uppercase">${l}</div></div>`).join('')}</div>`;
+      h += big(t, 149.8, 153.6, 'The ceiling of the 2D game.', { y: 660, size: 64 });
+    }
+  }
+  // ===== S8 five months of nothing, then one message (153.4–170.6)
+  if (t >= 153.4 && t < 171) {
+    h += shade(1, 'radial-gradient(ellipse at 50% 40%,#11131c 0%,#050609 78%)');
+    if (t < 158.4) {
+      const months = ['JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV'], f = fade(t, 153.8, 158.3, 0.4, 0.4), k = cl((t - 154.6) / 3.2);
+      h += `<div class="abs" style="left:0;right:0;top:400px;display:flex;justify-content:center;gap:54px;opacity:${f.toFixed(3)}">${months.map((m, i) => { const on = k * 5 >= i - 0.01; const curM = Math.round(k * 5) === i; return `<div class="serif" style="font-size:92px;font-weight:800;letter-spacing:.06em;color:${curM ? '#fff' : on ? 'rgba(239,231,214,.34)' : 'rgba(239,231,214,.1)'}">${m}</div>`; }).join('')}</div>`;
+      h += `<div class="abs mono" style="left:0;right:0;top:570px;text-align:center;font-size:24px;letter-spacing:.5em;color:var(--dim);opacity:${f.toFixed(3)}">NO MESSAGES · NO COMMITS</div>`;
+    }
+    if (t >= 158.2 && t < 163.8) {
+      const f = fade(t, 158.3, 163.7, 0.5, 0.4);
+      h += `<div class="abs" style="left:0;right:0;top:300px;text-align:center;opacity:${f.toFixed(3)}"><div class="serif gold" style="font-size:128px;font-weight:800;letter-spacing:.12em;line-height:1">NOVEMBER 10</div><div class="mono" style="margin-top:22px;font-size:26px;letter-spacing:.5em;color:var(--dim)">2026 · 04:29 UTC</div><div style="margin-top:70px;opacity:${ease((t - 160.2) / 0.6).toFixed(3)}"><span class="mono" style="font-size:24px;letter-spacing:.4em;color:var(--dim)">NEW MODEL&nbsp;&nbsp;</span><span class="serif" style="font-size:74px;font-weight:800;color:#fff">Claude Fable 5.2</span></div></div>`;
+    }
+    h += quote(t, 163.6, 170.9, 'this is dated. I am using the Fable 5.2. I need a complete revamp 3js, use higgsfield to generate high quality characters and environments and music. Nothing but the highest effort here.', 'One message · November 10 · 04:29 UTC', { x: 210, y: 250, w: 1500, size: 58, typed: true, cps: 36 });
+  }
+  // ===== S9 what the model did with it (170.6–206)
+  if (t >= 170.6 && t < 206.4) {
+    h += shade(1, 'radial-gradient(ellipse at 50% 40%,#151925 0%,#06070b 78%)');
+    if (t < 174.2) h += big(t, 171.1, 174.1, 'One prompt.<br>No back-and-forth.', { y: 360, size: 112, cls: 'gold', style: 'line-height:1.2' });
+    if (t >= 173.8 && t < 181.2) {
+      [['kaito_front.png', 'KAITO'], ['akane_front.png', 'AKANE'], ['kurogane_front.png', 'KUROGANE']].forEach(([f, nm], i) => { const a = out3((t - 174.0 - i * 0.5) / 0.7), o = fade(t, 173.8, 181.2, 0.01, 0.4); h += `<div class="card" style="left:${250 + i * 490}px;top:${150 + (1 - a) * 60}px;width:440px;height:655px;opacity:${(a * o).toFixed(3)}"><img src="img/${f}"><div class="t">${nm}</div></div>`; });
+      h += label(t, 177.4, 181.0, 'Step 1 · three fighters designed, generated as concept art', 250, 850);
+    }
+    if (t >= 180.9 && t < 188.2) {
+      const o = fade(t, 180.9, 188.2, 0.4, 0.4);
+      if (t < 184.0) { h += img('rig_kaito.png', `left:0;top:230px;width:1920px;filter:brightness(1.7) contrast(1.08);opacity:${o.toFixed(3)}`); h += label(t, 181.3, 183.9, 'Step 2 · concept art → 3D mesh → skeleton', 250, 850); }
+      else { const sc = (t - 184.0) * 46; h += `<div class="abs" style="left:0;top:120px;width:1920px;height:760px;overflow:hidden;opacity:${o.toFixed(3)}"><img src="img/anim_sheet.jpg" style="position:absolute;left:-240px;top:${(-140 - sc).toFixed(1)}px;width:2400px"></div>`; h += label(t, 184.3, 188.0, 'Step 3 · 36 sword animations retargeted onto each skeleton', 250, 890); }
+    }
+    if (t >= 187.9 && t < 194.2) {
+      const o = fade(t, 187.9, 194.2, 0.4, 0.4);
+      h += img('rig_akane.png', `left:0;top:120px;width:1920px;filter:brightness(1.7) contrast(1.08);opacity:${o.toFixed(3)}`);
+      h += `<div class="term" style="left:250px;top:660px;width:1420px;opacity:${(o * ease((t - 188.6) / 0.5)).toFixed(3)}"><span class="c">// tools/autorig.mjs — written by the model when the rigging credits ran out</span>\n<span class="c">// 1. fit the skeleton to the new mesh from body landmarks</span>\n<span class="c">// 2. skin it: nearest visible bone → geodesic spread → smoothing</span>\n$ node autorig.mjs kaito_rig.glb kaito_mesh.glb akane_mesh.glb akane_rig.glb\n<span class="ok">wrote akane_rig.glb | joints 24</span></div>`;
+    }
+    if (t >= 193.8 && t < 198.4) {
+      ['moon.jpg', 'siege.jpg', 'storm.jpg'].forEach((f, i) => { const a = out3((t - 193.9 - i * 0.35) / 0.6), o = fade(t, 193.8, 198.4, 0.01, 0.35); h += `<div class="card" style="left:${96 + i * 592}px;top:${330 + (1 - a) * 50}px;width:544px;height:300px;opacity:${(a * o).toFixed(3)}"><img src="img/${f}"><div class="t">${['Moonlit Shrine', 'Burning Keep', 'Storm Grove'][i]}</div></div>`; });
+      h += label(t, 194.6, 198.2, 'Step 4 · three arenas, lighting, weather, camera', 96, 700);
+    }
+    if (t >= 198.1 && t < 201.4) {
+      const o = fade(t, 198.1, 201.4, 0.35, 0.35);
+      h += `<div class="term" style="left:330px;top:300px;width:1260px;opacity:${o.toFixed(3)}">$ npm test\n<span class="ok">  ok  </span>light attacks chain three times on hit\n<span class="ok">  ok  </span>super needs a full meter and spends it\n<span class="ok">  ok  </span>CPU vs CPU matches always finish, for every pairing\n<span class="ok">  ok  </span>simulation is deterministic for a given seed\n\n<span class="ok">17 simulation tests passed</span></div>`;
+    }
+    if (t >= 201.0) {
+      h += foot('c_moon', t, 201.0, 2, { speed: 0.6, op: ease((t - 201.0) / 0.5) });
+      h += shade(0.38 * ease((t - 202.2) / 0.5));
+      h += big(t, 202.4, 206.3, '1 h 43 min', { y: 330, size: 200, cls: 'gold' });
+      h += `<div class="abs mono" style="left:0;right:0;top:610px;text-align:center;font-size:28px;letter-spacing:.42em;color:#fff;opacity:${fade(t, 202.8, 206.3, 0.4, 0.4).toFixed(3)}">PROMPT 04:29 UTC → SHIPPED 06:12 UTC</div>`;
+    }
+    // running clock
+    const mins = cl((t - 171) / (205.4 - 171)) * 103, cf = fade(t, 171.4, 202.2, 0.5, 0.4);
+    h += `<div class="hud" style="left:470px;opacity:${cf.toFixed(3)}"><span class="chip" style="border-color:rgba(217,178,92,.7)">Since the prompt&nbsp; <b style="font-size:26px;color:#fff">${Math.floor(mins / 60)}h ${String(Math.floor(mins % 60)).padStart(2, '0')}m</b></span></div>`;
+  }
+  // ===== S10 the black screen (206–221.6)
+  if (t >= 206 && t < 222) {
+    if (t < 209) h += foot('c_storm', t, 206, C.c_storm.i0 + 120, { op: ease((t - 206) / 0.4) });
+    if (t >= 208.6 && t < 219.4) { h += img('bug_black.jpg', `left:0;top:0;width:1920px;height:1080px;object-fit:cover;opacity:${ease((t - 208.6) / 0.25).toFixed(3)}`); }
+    if (t >= 219.0) { const w = ease((t - 219.0) / 0.9) * 100; h += foot('c_storm', t, 219.0, C.c_storm.i0 + 40, { clip: `inset(0 ${(100 - w).toFixed(2)}% 0 0)` }); }
+    h += quote(t, 209.6, 214.6, 'I see a black overlay constantly blocking the view', 'Bug report + one screenshot · November 10 · 06:38', { x: 420, y: 330, w: 1080, size: 52 });
+    h += label(t, 215.2, 218.9, 'From the screenshot: one over-bright pixel, smeared by the bloom pass', 330, 520);
+    h += label(t, 219.6, 221.8, 'Fixed 13 minutes after the screenshot', 110, 880);
+  }
+  // ===== S11 what changed, what did not (221.6–256.4)
+  if (t >= 221.6 && t < 256.8) {
+    const KO = C.c_moon.act;
+    if (t < 236.4) {
+      // June | November split
+      const split = t < 230.2 ? 50 : t < 231.4 ? 50 + ease((t - 230.2) / 0.5) * 50 : 100 - ease((t - 231.4) / 0.6) * 100;
+      h += foot('c_siege', t, 221.6, 0, { speed: 0.86 });
+      h += foot('b04', t, 221.6, C.b04.fight + 200, { bleed: true, clip: `inset(0 ${(100 - split).toFixed(2)}% 0 0)` });
+      if (split > 1 && split < 99) h += `<div class="abs" style="left:${(split * 19.2 - 2).toFixed(1)}px;top:0;width:4px;height:1080px;background:var(--gold2);box-shadow:0 0 24px var(--gold2)"></div>`;
+      h += shade(0, 'linear-gradient(180deg,rgba(5,6,10,.5) 0%,rgba(5,6,10,0) 20%,rgba(5,6,10,0) 70%,rgba(5,6,10,.6) 100%)');
+      const lf = fade(t, 222.4, 233, 0.4, 0.4);
+      if (split > 12) h += `<div class="label" style="left:96px;top:130px;opacity:${lf.toFixed(3)}">June · Claude Fable 5 · pixel art</div>`;
+      if (split < 88) h += `<div class="label" style="right:96px;top:130px;opacity:${lf.toFixed(3)};border-left:0;border-right:4px solid var(--gold)">November · Claude Fable 5.2 · real-time 3D</div>`;
+      if (t >= 232.9) {
+        h += shade(0.8 * ease((t - 232.9) / 0.35) + 0.2 * ease((t - 235.9) / 0.45));
+        const f = fade(t, 233.1, 236.3, 0.35, 0.35), k = ease((t - 234.8) / 0.5);
+        h += `<div class="abs" style="left:0;right:0;top:330px;text-align:center;opacity:${f.toFixed(3)}"><span class="serif" style="font-size:230px;font-weight:800;color:rgba(239,231,214,${(1 - k * 0.6).toFixed(2)})">30</span><span class="serif gold" style="font-size:150px;font-weight:800;margin:0 50px;opacity:${k.toFixed(2)}">→</span><span class="serif gold" style="font-size:${(230 + k * 40).toFixed(0)}px;font-weight:800;opacity:${k.toFixed(2)}">1</span><div class="mono" style="font-size:26px;letter-spacing:.4em;color:var(--paper);margin-top:10px">HUMAN MESSAGES TO BUILD IT</div></div>`;
+      }
+    } else {
+      h += foot('c_moon', t, 236.2, KO, { speed: 0.8, op: ease((t - 236.4) / 0.45) });
+      h += shade(0.3 + 0.25 * ease((t - 243.4) / 0.6));
+      const words = [[239.1, 'GRIM', '“The music needs to be grim…” · June 12'], [239.9, 'JAPANESE', '“…grim and Japanese, not synthesized.” · June 12'], [241.0, 'CINEMATIC', '“Add quality cinematics…” · June 12'], [242.1, 'MORE DRAMA', '“…more drama, more fun” · June 12']];
+      if (t < 248.8) {
+        const f = fade(t, 239.0, 248.7, 0.2, 0.5);
+        h += `<div class="abs" style="left:150px;top:210px;opacity:${f.toFixed(3)}">${words.map(([wt, w, src]) => { const a = out3((t - wt) / 0.35); return t < wt ? '' : `<div style="margin-bottom:26px;opacity:${a.toFixed(3)};transform:translateX(${((1 - a) * -40).toFixed(1)}px)"><span class="serif gold" style="font-size:104px;font-weight:800;letter-spacing:.1em;line-height:1">${w}</span><span class="mono" style="font-size:22px;letter-spacing:.12em;color:var(--paper);margin-left:34px;opacity:${ease((t - 243.8) / 0.6).toFixed(3)}">${src}</span></div>`; }).join('')}</div>`;
+      }
+      h += big(t, 248.9, 251.3, 'The models keep getting better at building.', { y: 430, size: 76 });
+      h += big(t, 251.4, 256.6, 'Knowing what is worth building<br>is still the human part.', { y: 360, size: 104, cls: 'gold', style: 'line-height:1.22', fo: 0.5 });
+    }
+  }
+  // ===== S12 end card (256.4–271)
+  if (t >= 256.4) {
+    h += foot('c_title', t, 256.4, 0, { speed: 0.84, op: ease((t - 256.4) / 0.6), tf: 'translateY(-150px) scale(1.06)' });
+    h += shade(0, 'linear-gradient(180deg,rgba(5,6,10,.2) 0%,rgba(5,6,10,.1) 42%,rgba(5,6,10,.93) 62%,rgba(5,6,10,.97) 100%)');
+    const f = fade(t, 257.2, 271, 0.7, 0.01);
+    h += `<div class="abs" style="left:0;right:0;top:640px;text-align:center;opacity:${f.toFixed(3)}">
+      <div class="serif" style="font-size:66px;font-weight:800;letter-spacing:.06em;color:#fff">Directed by <span class="gold">rizqureshy</span></div>
+      <div class="mono" style="font-size:26px;letter-spacing:.3em;color:var(--paper);margin-top:26px">BUILT WITH CLAUDE · FABLE 5 → OPUS 4.8 → FABLE 5.2</div>
+      <div style="margin-top:44px;opacity:${ease((t - 259.4) / 0.6).toFixed(3)}"><span class="mono" style="font-size:34px;letter-spacing:.1em;color:#07080d;background:var(--gold2);padding:14px 34px;border-radius:8px;font-weight:700">Play free · rizqureshy.github.io/StreetF2</span></div>
+      <div class="mono" style="font-size:17px;letter-spacing:.14em;color:var(--dim);margin-top:44px;line-height:1.9">CHARACTERS, ARENAS &amp; SCORE GENERATED WITH HIGGSFIELD · ANIMATION: QUATERNIUS (CC0) · SOUND: KENNEY (CC0), FREEPD (CC0)<br>NARRATION: ELEVENLABS · EVERY QUOTE IS A REAL MESSAGE FROM THE PROJECT · FOOTAGE RE-RECORDED FROM EACH BUILD IN THE GIT HISTORY</div></div>`;
+    h += shade(ease((t - 268.6) / 2.2));
+  }
+  return h;
+}
+
+function render(t) {
+  const el = document.getElementById('stage');
+  const noCap = t >= 256.4;
+  el.innerHTML = scene(t) + (noCap ? '' : '<div class="vig"></div>') + hud(t) + (noCap ? '' : captions(t));
+  return Promise.all([...el.querySelectorAll('img')].map(i => (i.complete ? (i.naturalWidth ? i.decode().catch(() => {}) : Promise.resolve()) : new Promise(r => { i.onload = () => i.decode().then(r, r); i.onerror = () => { console.error('missing ' + i.src); r(); }; }))));
+}
+
+(async function init() {
+  const j = u => fetch(u).then(r => r.json());
+  const [script, timing] = await Promise.all([j('../script.json'), j('../vo/timing.json')]);
+  CAPS = buildCaptions(script, timing);
+  for (const b of ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11']) {
+    const runs = await j(`../clips/b${b}/screens.json`).catch(() => []);
+    const fr = runs.find(r => r[0] === 'fight');
+    CLIPS['b' + b] = { n: 780, px: true, fight: fr ? fr[1] : 90 };
+  }
+  for (const c of ['c_storm', 'c_siege', 'c_moon', 'c_title', 'c_select']) {
+    const m = await j(`../clips/${c}/meta.json`).catch(() => null);
+    if (!m) { CLIPS[c] = { n: 1, i0: 0, intro: 0, act: 0 }; continue; }
+    const fr = m.frames, firstMatch = fr.findIndex(f => f.tick >= 0);
+    CLIPS[c] = { n: fr.length, i0: 0, intro: Math.max(0, firstMatch), act: Math.max(0, fr.findIndex(f => f.tick >= 2000)) };
+  }
+  await document.fonts.ready;
+  for (const f of ['800 40px Mincho', '400 40px Mincho', '40px Yuji', '400 20px Inter', '500 20px Inter', '600 20px Inter', '700 20px Inter', '400 20px Mono', '700 20px Mono']) await document.fonts.load(f, 'Aa疾').catch(() => {});
+  window.renderAt = t => render(t);
+  window.CAPS = CAPS; window.DUR = DUR; window.FPS = FPS; window.VO = VO;
+  const q = new URLSearchParams(location.search);
+  if (q.has('t')) await render(+q.get('t'));
+  window.__ready = true;
+})();
+</script></body></html>
