@@ -5,7 +5,7 @@ import { STEP, CHARACTERS, STAGES, DIFFICULTY, charById, stageById, STAGE_HALF }
 import { Match } from './sim.js';
 import { OPTIONS, saveOptions } from './options.js';
 import { pollInput, readPad, endTick, drainNav, Touch } from './input.js';
-import { SFX, say, Music, preloadSfx, applyVolumes, unlockAudio } from './audio.js';
+import { SFX, say, Music, preloadSfx, applyVolumes, unlockAudio, AudioLog } from './audio.js';
 import { loadAssets } from './assets.js';
 import { Gfx, Director, QUALITY } from './gfx.js';
 import { Stage } from './stage3d.js';
@@ -58,6 +58,15 @@ const G = {
 window.__game = { G, ui, gfx, director, stage, fx };
 
 const STEP_MODE = params.has('step');
+// Capture mode (?capture=30): the loop does not run on its own. A recorder calls
+// __game.captureFrame(), which advances exactly 1/fps of game time per call, so
+// footage is frame-exact however slowly the machine renders. ?seed=N makes the
+// CPU fighters deterministic; ?diff=0..2 overrides the difficulty for the run.
+const CAPTURE = +params.get('capture') || 0;
+const SEED = params.has('seed') ? +params.get('seed') : null;
+if (params.has('diff')) OPTIONS.difficulty = Math.max(0, Math.min(2, +params.get('diff')));
+const seeded = seed => { let x = seed >>> 0; return () => ((x = (x * 1664525 + 1013904223) >>> 0) / 4294967296); };
+let matchCount = 0;
 G.pendingSim = 0;
 /**
  * Test hook: run `n` simulation ticks immediately. p1/p2 are optional
@@ -103,7 +112,7 @@ function startMatch({ p1, p2, stageIdx, cpu, training = false, attract = false, 
   loadStage(stageIdx);
   fx.reset();
   setView(0, p1); setView(1, p2, { alt: alt || p1.id === p2.id });
-  G.match = new Match({ p1, p2, cpu, training, difficulty: OPTIONS.difficulty, cinematic: cinematic && !attract && !training });
+  G.match = new Match({ p1, p2, cpu, training, difficulty: OPTIONS.difficulty, cinematic: cinematic && !attract && !training, rng: SEED !== null ? seeded(SEED + matchCount++) : undefined });
   if (training) { G.match.p1.meter = 100; }
   G.attract = attract; G.paused = false; G.acc = 0; G.slowT = 0;
   G.screen = attract ? 'attract' : 'match';
@@ -447,10 +456,10 @@ function updateDebug() {
 // --------------------------------------------------------------------------
 let last = performance.now();
 function frame(now) {
-  requestAnimationFrame(frame);
+  if (!CAPTURE) requestAnimationFrame(frame);
   const dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000));
   last = now;
-  G.time += dt; G.frames = (G.frames || 0) + 1;
+  G.time += dt; G.frames = (G.frames || 0) + 1; AudioLog.t = G.time;
   pollInput();
   for (const n of drainNav()) ui.nav(n.action, n.player);
   if (!STEP_MODE) for (let i = G.timers.length - 1; i >= 0; i--) { const t = G.timers[i]; if ((t.t -= dt) <= 0) { G.timers.splice(i, 1); t.fn(); } }
@@ -515,7 +524,7 @@ function frame(now) {
   post.dark += (post.darkTarget - post.dark) * Math.min(1, dt * 10);
   post.exposureBoost = stage.flash * 0.35;
   const def = stage.def || STAGES[0];
-  gfx.render(G.time, { exposure: def.exposure, bloom: def.bloom + stage.flash * 0.5 }, post);
+  if (!G.noRender) gfx.render(G.time, { exposure: def.exposure, bloom: def.bloom + stage.flash * 0.5 }, post);
 }
 
 // --------------------------------------------------------------------------
@@ -549,7 +558,11 @@ function frame(now) {
       if (auto === 'arcade') { G.stageIdx = st; startArcade(); }
       else beginVersus({ p1, p2, stageIdx: st });
     } else goTitle();
-    requestAnimationFrame(t => { last = t; frame(t); });
+    if (CAPTURE) {
+      let vnow = 0; last = 0;
+      AudioLog.on = true; window.__game.audioLog = AudioLog;
+      window.__game.captureFrame = (render = true) => { G.noRender = !render; vnow += 1000 / CAPTURE; frame(vnow); return G.match ? G.match.frame : -1; };
+    } else requestAnimationFrame(t => { last = t; frame(t); });
     window.__game.ready = true;
   } catch (err) {
     console.error(err);

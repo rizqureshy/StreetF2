@@ -59,7 +59,7 @@ import map (`index.html` → `src/main.js`, three.js vendored under `vendor/`).
 
 Handy deep links: `?auto=cpu&p1=akane&p2=kurogane&stage=storm` jumps straight
 into a match; `?q=low|medium|high` forces a graphics preset; `?debug` shows
-hit boxes.
+hit boxes. For recording footage, `?capture=30` hands the frame loop to an external recorder (`__game.captureFrame()` advances exactly 1/30 s per call), `?seed=N` makes CPU fights reproducible and `?diff=0..2` sets the difficulty for the run.
 
 ## How it is built
 

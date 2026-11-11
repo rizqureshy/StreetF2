@@ -107,7 +107,11 @@ export function applyVolumes() {
 }
 
 /** Play one of `names` (random pick). pan: -1..1 */
+/** Capture hook: when enabled, every sample request is logged with the game clock (used to rebuild a soundtrack offline). */
+export const AudioLog = { on: false, t: 0, events: [] };
+
 export function play(names, vol = 1, jitter = 0.05, rate = 1, pan = 0) {
+  if (AudioLog.on) AudioLog.events.push({ t: +AudioLog.t.toFixed(4), names: Array.isArray(names) ? names : [names], vol, rate, pan: +(+pan || 0).toFixed(2) });
   if (!ctx) return false;
   const list = Array.isArray(names) ? names : [names];
   const cands = list.filter(n => SAMPLES[n] && SAMPLES[n].buf);
